@@ -264,7 +264,7 @@ export const Navbar = () => {
                       className="w-9 h-9 rounded-full object-cover border-2 border-white"
                     />
                   ) : (
-                    <span className="material-icons-round text-3xl text-white">
+                    <span className="material-icons-round text-3xl text-black">
                       account_circle
                     </span>
                   )}
