@@ -16,7 +16,6 @@ export default function AdminPage() {
         </div>
 
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
-          <p className="text-4xl mb-4">🌹</p>
           <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
             ¡Bienvenido!
           </h2>
