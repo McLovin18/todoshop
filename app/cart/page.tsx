@@ -83,19 +83,85 @@ export default function CartPage() {
 
   const generateWhatsAppMessage = async (): Promise<string> => {
     const bodegas = await obtenerBodegas();
-    const bodegasMap = new Map(bodegas.map(b => [b.id, b.tiempoEntrega]));
+    const bodegasMap = new Map(
+      bodegas.map((b) => [b.id, b.tiempoEntrega])
+    );
 
     const productosText = carrito
       .map((p) => {
-        const tiempoEntrega = bodegasMap.get(p.bodegaId || "technothings") || 72;
-        return `${p.nombre} (Entrega Aproximada en: ${tiempoEntrega}h)`;
+        const tiempoEntrega =
+          bodegasMap.get(p.bodegaId || "technothings") || 72;
+
+        const { finalPrice } = calcularPrecioData(p);
+        const lineTotal = finalPrice * (p.cantidad || 1);
+
+        let variaciones = "";
+
+        // Variaciones dinámicas
+        if (
+          p.selectedVariations &&
+          p.variationAttributeIds &&
+          p.variationAttributeIds.length > 0
+        ) {
+          variaciones = p.variationAttributeIds
+            .map((attrId: string) => {
+              const atributo = atributos.find(
+                (a: any) => a.id === attrId
+              );
+
+              const attrName = atributo?.nombre || "Opción";
+              const value = p.selectedVariations?.[attrId];
+
+              return value
+                ? `${attrName}: ${value}`
+                : null;
+            })
+            .filter(Boolean)
+            .join(" | ");
+        }
+
+        // Compatibilidad con sistema antiguo
+        else if (p.selectedTalla || p.selectedColor) {
+          const legacy: string[] = [];
+
+          if (p.selectedTalla) {
+            legacy.push(`Talla: ${p.selectedTalla}`);
+          }
+
+          if (p.selectedColor) {
+            legacy.push(`Color: ${p.selectedColor}`);
+          }
+
+          variaciones = legacy.join(" | ");
+        }
+
+        return [
+          `📦 ${p.nombre}`,
+          `Cantidad: ${p.cantidad || 1}`,
+          variaciones ? `: ${variaciones}` : null,
+          `Precio unitario: $${finalPrice.toFixed(2)}`,
+          `Subtotal: $${lineTotal.toFixed(2)}`,
+          `Entrega aproximada: ${tiempoEntrega}h`,
+        ]
+          .filter(Boolean)
+          .join("\n");
       })
-      .join("\n");
-    
-    const headerMsg = "Hola, Me gustaría realizar una compra:";
-    const footerMsg = "Quiero confirmar disponibilidad y conocer más detalles. Gracias!";
-    
-    const message = `${headerMsg}\n\n${productosText}\n\n???????????????\nTOTAL: $${subtotal.toFixed(2)}\n???????????????\n\n${footerMsg}`;
+      .join("\n\n");
+
+    const headerMsg = "Hola, me gustaría realizar una compra:";
+    const footerMsg =
+      "Quiero confirmar disponibilidad y conocer más detalles. Gracias!";
+
+    const message = `${headerMsg}
+
+  ${productosText}
+
+  ━━━━━━━━━━━━━━━
+  TOTAL: $${subtotal.toFixed(2)}
+  ━━━━━━━━━━━━━━━
+
+  ${footerMsg}`;
+
     return encodeURIComponent(message);
   };
 
