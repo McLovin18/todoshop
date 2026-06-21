@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "../../../lib/firebase-admin";
+import { getRoleFromFirebaseClaims } from "../../../lib/auth-roles";
 
 // MEMORY RATE LIMIT
 
@@ -32,12 +33,21 @@ export async function POST(req: Request) {
 
     // VERIFY FIREBASE TOKEN
     const decoded = await adminAuth.verifyIdToken(idToken);
-    if ((decoded as any).admin !== true) {
+    console.log("[/api/auth/login] UID:", decoded.uid);
+    console.log("[/api/auth/login] Email:", decoded.email);
+    console.log("[/api/auth/login] Claims completos:", JSON.stringify(decoded, null, 2));
+    
+    const userRole = getRoleFromFirebaseClaims(decoded as any);
+    console.log("[/api/auth/login] Role desde Firebase claims:", userRole);
+    
+    if (userRole !== "admin" && userRole !== "emprendedor") {
+      console.log("[/api/auth/login] Rol no válido:", userRole);
       return NextResponse.json(
-        { error: "Solo el administrador puede iniciar sesión en esta tienda." },
+        { error: "Solo el administrador o el emprendedor puede iniciar sesión en esta tienda." },
         { status: 403 },
       );
     }
+
     // SESSION COOKIE
 
     const expires = 1000 * 60 * 60 * 24 * 5;
@@ -47,8 +57,6 @@ export async function POST(req: Request) {
 
       { expiresIn: expires },
     );
-
-    const userRole = "admin";
 
     const response = NextResponse.json({
       success: true,

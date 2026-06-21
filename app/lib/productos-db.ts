@@ -27,6 +27,8 @@ export interface Producto {
   subsubcategoria?: string;
   marca?: string;
   bodegaId?: string;
+  emprendedorId?: string;
+  extras?: { nombre: string; precio: string }[];
   destacado?: boolean;
   createdAt?: number | Date;
   fechaCreacion?: any;
@@ -190,22 +192,30 @@ function cleanUndefinedDeep(obj: any): any {
 // Crear producto
 import { serverTimestamp } from "firebase/firestore";
 
-export async function crearProducto(producto: Producto): Promise<Producto> {
+export async function crearProducto(producto: Producto, emprendedorId?: string): Promise<Producto> {
   const cleanProducto = cleanUndefinedDeep(producto);
   // Agregar campo de fecha de creación (timestamp en ms para ordenamiento)
   const productoConFecha = {
     ...cleanProducto,
     createdAt: Date.now(),
     fechaCreacion: serverTimestamp(),
+    ...(emprendedorId && { emprendedorId }),
   };
   const docRef = await addDoc(collection(db, COLLECTION), productoConFecha);
-  return { ...cleanProducto, id: docRef.id, createdAt: Date.now() };
+  return { ...cleanProducto, id: docRef.id, createdAt: Date.now(), ...(emprendedorId && { emprendedorId }) };
 }
 
 // Obtener todos los productos
 // Si opts.incluirSinStock es true, no filtra por stock (solo para admin/inventario)
-export async function obtenerProductos(opts = {}) {
-  const snapshot = await getDocs(collection(db, COLLECTION));
+// Si opts.emprendedorId se proporciona, filtra por emprendedor
+export async function obtenerProductos(opts: { incluirSinStock?: boolean; emprendedorId?: string } = {}) {
+  let q;
+  if (opts.emprendedorId) {
+    q = query(collection(db, COLLECTION), where("emprendedorId", "==", opts.emprendedorId));
+  } else {
+    q = collection(db, COLLECTION);
+  }
+  const snapshot = await getDocs(q);
   let productos = snapshot.docs.map(doc => {
     const data = doc.data();
     const producto = { id: doc.id, ...data };

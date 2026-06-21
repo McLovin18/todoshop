@@ -19,8 +19,8 @@ const IconFacebook = () => (
 );
 
 const socialLinks = [
-  { href: "https://www.instagram.com/arcoirismodainfantil.ec/", label: "Instagram", Icon: IconInstagram },
-  { href: "https://www.facebook.com/people/Arco%C3%ADris-moda-infantil/100068942525966/?ref=PROFILE_EDIT_xav_ig_profile_page_web#", label: "Facebook", Icon: IconFacebook },
+  { href: "https://www.instagram.com/todoshop/", label: "Instagram", Icon: IconInstagram },
+  { href: "https://www.facebook.com/todoshop/", label: "Facebook", Icon: IconFacebook },
 ];
 
 const Footer: React.FC = () => {
@@ -59,7 +59,7 @@ const Footer: React.FC = () => {
         {/* Copyright row */}
         <div className={styles.ftCopyRow}>
           <p className={styles.ftCopyText}>
-            © {new Date().getFullYear()} Arcoiris moda infantil 2026. Todos los derechos reservados.
+            © {new Date().getFullYear()} todoShop. Todos los derechos reservados.
           </p>
           <div className={styles.ftCopyRight}>
             <div className={styles.ftBadge}>
@@ -77,7 +77,6 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        {showWhatsAppFloating && <WhatsAppFloatingButton />}
       </footer>
     </>
   );

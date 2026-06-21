@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import BottomBarPublic from "../components/BottomBarPublic";
 import { loginUser } from "../lib/firebase-auth";
 import { Loading3DIcon } from "../components/Loading3DIcon";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [showLoginPass, setShowLoginPass] = useState(false);
@@ -19,6 +21,9 @@ export default function LoginPage() {
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [registerDisplayName, setRegisterDisplayName] = useState("");
 
   // Auto-dismiss alert
   useEffect(() => {
@@ -26,6 +31,13 @@ export default function LoginPage() {
     const t = setTimeout(() => setAlert(null), 4000);
     return () => clearTimeout(t);
   }, [alert]);
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (tab === "register") {
+      setActiveTab("register");
+    }
+  }, [searchParams]);
 
   // ← Contador regresivo para rate limiting
   useEffect(() => {
@@ -82,10 +94,15 @@ export default function LoginPage() {
         if (!res.ok) {
           throw new Error(data?.error || "No se pudo crear la sesión");
         }
-        if (data?.role !== "admin") {
-          throw new Error("Solo el administrador puede iniciar sesión en esta tienda.");
+        if (data?.role === "admin") {
+          router.push("/admin");
+          return;
         }
-        router.push("/admin");
+        if (data?.role === "emprendedor") {
+          router.push("/emprendedor/inventario");
+          return;
+        }
+        throw new Error("Solo el administrador o el emprendedor puede iniciar sesión en esta tienda.");
       }
     } catch (error: any) {
       const errorMsg = error.message || "Error al iniciar sesión";
@@ -93,7 +110,6 @@ export default function LoginPage() {
       
       // ← Detectar si es error de rate limiting y establecer bloqueoBLOQUEO
       if (errorMsg.includes("Demasiados intentos")) {
-        // Extraer el tiempo restante de "Intenta nuevamente en X segundos"
         const secondsMatch = errorMsg.match(/(\d+)\s*segundos/);
         if (secondsMatch) {
           const secondsToWait = parseInt(secondsMatch[1], 10);
@@ -103,11 +119,48 @@ export default function LoginPage() {
         }
       }
       
-      // Limpiar password pero mantener email por comodidad
       setLoginPassword("");
       try {
         await import("../lib/firebase-auth").then((m) => m.logoutUser());
       } catch {}
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    if (!registerEmail || !registerPassword) {
+      setAlert({ message: "Completa email y contraseña", type: "error" });
+      return;
+    }
+    if (registerPassword.length < 6) {
+      setAlert({ message: "La contraseña debe tener al menos 6 caracteres", type: "error" });
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const res = await fetch("/api/auth/create-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: registerEmail,
+          password: registerPassword,
+          displayName: registerDisplayName,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "No se pudo completar el registro");
+      }
+      setAlert({ message: "Registro exitoso. Ahora puedes iniciar sesión.", type: "success" });
+      setActiveTab("login");
+      setRegisterPassword("");
+      setRegisterEmail("");
+      setRegisterDisplayName("");
+    } catch (error: any) {
+      setAlert({ message: error.message || "Error en el registro", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -135,7 +188,7 @@ export default function LoginPage() {
           Arcoiris moda infantil
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-base">
-          Acceso exclusivo para administración.
+          Acceso exclusivo para administradores y emprendedores.
         </p>
       </div>
 
@@ -144,6 +197,30 @@ export default function LoginPage() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
 
           <div className="p-6 md:p-8">
+            <div className="flex gap-2 mb-6 rounded-2xl bg-slate-100 dark:bg-slate-800 p-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab("login")}
+                className={`flex-1 rounded-xl py-3 text-sm font-semibold transition ${
+                  activeTab === "login"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                }`}
+              >
+                Iniciar sesión
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("register")}
+                className={`flex-1 rounded-xl py-3 text-sm font-semibold transition ${
+                  activeTab === "register"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                }`}
+              >
+                Registrarse
+              </button>
+            </div>
             {/* Alert */}
             {alert && (
               <div
@@ -160,82 +237,142 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-4" noValidate>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
-                  Correo electrónico
-                </label>
-                <input
-                  type="email"
-                  placeholder="admin@email.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  autoComplete="email"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
-                  Contraseña
-                </label>
-                <div className="relative">
+            {activeTab === "login" ? (
+              <form onSubmit={handleLogin} className="space-y-4" noValidate>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+                    Correo electrónico
+                  </label>
                   <input
-                    type={showLoginPass ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    autoComplete="current-password"
-                    className={inputClass + " pr-12"}
+                    type="email"
+                    placeholder="admin@email.com"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    autoComplete="email"
+                    className={inputClass}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowLoginPass(!showLoginPass)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showLoginPass ? (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    )}
-                  </button>
                 </div>
-              </div>
-              <div className="flex justify-end">
-                <a
-                  href="/recuperar-password"
-                  className="text-sm text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+                    Contraseña
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showLoginPass ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      autoComplete="current-password"
+                      className={inputClass + " pr-12"}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPass(!showLoginPass)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showLoginPass ? (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <a
+                    href="/recuperar-password"
+                    className="text-sm text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </a>
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading || (rateLimitBlockedUntil !== null && rateLimitSecondsRemaining > 0)}
+                  className="w-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
                 >
-                  ¿Olvidaste tu contraseña?
-                </a>
-              </div>
-              <button
-                type="submit"
-                disabled={loading || (rateLimitBlockedUntil !== null && rateLimitSecondsRemaining > 0)}
-                className="w-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
-              >
-                {loading ? (
-                  <>
-                    <Loading3DIcon />
-                    <span>Ingresando...</span>
-                  </>
-                ) : rateLimitBlockedUntil !== null && rateLimitSecondsRemaining > 0 ? (
-                  <>
-                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Espera {rateLimitSecondsRemaining}s</span>
-                  </>
-                ) : (
-                  "Ingresar al panel"
-                )}
-              </button>
-            </form>
+                  {loading ? (
+                    <>
+                      <Loading3DIcon />
+                      <span>Ingresando...</span>
+                    </>
+                  ) : rateLimitBlockedUntil !== null && rateLimitSecondsRemaining > 0 ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Espera {rateLimitSecondsRemaining}s</span>
+                    </>
+                  ) : (
+                    "Ingresar al panel"
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleRegister} className="space-y-4" noValidate>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+                    Correo electrónico
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="emprendedor@email.com"
+                    value={registerEmail}
+                    onChange={(e) => setRegisterEmail(e.target.value)}
+                    autoComplete="email"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+                    Nombre completo (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Nombre del emprendedor"
+                    value={registerDisplayName}
+                    onChange={(e) => setRegisterDisplayName(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+                    Contraseña
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    autoComplete="new-password"
+                    className={inputClass}
+                  />
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Solo puedes registrarte si el administrador ya pre-aprobó tu correo.
+                </p>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loading3DIcon />
+                      <span>Registrando...</span>
+                    </>
+                  ) : (
+                    "Registrarme"
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </div>
 

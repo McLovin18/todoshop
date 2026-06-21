@@ -1,0 +1,60 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Reglas para alimentos (imágenes de alimentos para emprendedores de comida)
+    match /alimentos/{allPaths=**} {
+      // Lectura pública para mostrar las imágenes
+      allow read: if true;
+      // Escritura para usuarios autenticados (emprendedores y admin)
+      allow write: if isSignedIn();
+    }
+
+    // Reglas para productos (imágenes de productos para emprendedores de productos)
+    match /productos/{allPaths=**} {
+      // Lectura pública para mostrar las imágenes
+      allow read: if true;
+      // Escritura para usuarios autenticados (emprendedores y admin)
+      allow write: if isSignedIn();
+    }
+
+    // Reglas para categorías (imágenes de categorías)
+    match /categorias/{allPaths=**} {
+      // Lectura pública para mostrar las imágenes
+      allow read: if true;
+      // Escritura solo para admin
+      allow write: if isAdmin();
+    }
+
+    // Reglas para marcas (imágenes de marcas)
+    match /marcas/{allPaths=**} {
+      // Lectura pública para mostrar las imágenes
+      allow read: if true;
+      // Escritura solo para admin
+      allow write: if isAdmin();
+    }
+
+    // Reglas para blogs (imágenes de blogs)
+    match /blogs/{allPaths=**} {
+      // Lectura pública para mostrar las imágenes
+      allow read: if true;
+      // Escritura solo para admin
+      allow write: if isAdmin();
+    }
+
+    // Reglas para avatares de usuarios
+    match /avatars/{userId}/{allPaths=**} {
+      // Lectura pública para mostrar avatares
+      allow read: if true;
+      // El usuario puede escribir su propio avatar
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}

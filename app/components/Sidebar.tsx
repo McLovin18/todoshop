@@ -2,14 +2,43 @@
 import React from "react";
 import Link from "next/link";
 
-const Sidebar = ({ role = "admin" }) => {
+const Sidebar = ({ role = "admin", tipoEmprendimiento = null }: { role?: string; tipoEmprendimiento?: string | null }) => {
+  console.log("Sidebar - role:", role, "tipoEmprendimiento:", tipoEmprendimiento);
+  
   const adminItems = [
     { name: "Inicio", path: "/admin", icon: "home" },
     { name: "Inventario", path: "/admin/inventario", icon: "inventory" },
+    { name: "Emprendedores", path: "/admin/emprendedores", icon: "storefront" },
     { name: "Reseñas", path: "/admin/reviews", icon: "rate_review" },
     { name: "Mi perfil", path: "/admin/perfil", icon: "person" },
   ];
-  const items = adminItems;
+  
+  // Items dinámicos según tipo de emprendedor
+  const emprendedorItems = [
+    { name: "Inicio", path: "/emprendedor", icon: "home" },
+  ];
+  
+  // Normalizar el tipo de emprendimiento para comparación
+  const tipoNormalizado = tipoEmprendimiento?.toLowerCase() || "";
+  console.log("Tipo normalizado:", tipoNormalizado);
+  
+  // Agregar Inventario solo para emprendedores de productos
+  if (tipoNormalizado.includes("producto") || !tipoEmprendimiento) {
+    emprendedorItems.push({ name: "Inventario", path: "/emprendedor/inventario", icon: "inventory" });
+  }
+  
+  // Agregar Reservas (gestión de alimentos) solo para emprendedores de comida
+  if (tipoNormalizado.includes("comida") || !tipoEmprendimiento) {
+    emprendedorItems.push({ name: "Alimentos", path: "/emprendedor/productosReserva", icon: "restaurant" });
+    emprendedorItems.push({ name: "Reservas", path: "/emprendedor/reservas", icon: "calendar_month" });
+  }
+  
+  console.log("Items de emprendedor:", emprendedorItems);
+  
+  const items = role === "emprendedor" ? emprendedorItems : adminItems;
+  console.log("Items seleccionados:", items);
+  console.log("Condición role === 'emprendedor':", role === "emprendedor");
+  
   return (
     <aside className="hidden lg:flex flex-col w-56 min-h-screen bg-white dark:bg-black border-r border-slate-200 dark:border-slate-700 shadow-md px-6 py-4">
       <ul className="space-y-2">

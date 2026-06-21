@@ -14,8 +14,8 @@ import { Source_Serif_4 } from "next/font/google";
 // Optimiza regeneración de página principal y otros contenidos estáticos
 export const revalidate = 1800;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://arcoiris-moda-infantil.com";
-const SITE_NAME = "Arcoíris Moda Infantil";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://todoshop.com";
+const SITE_NAME = "todoShop";
 const sourceSerif4 = Source_Serif_4({
   subsets: ["latin"],
   weight: ["400"],
@@ -25,22 +25,22 @@ const sourceSerif4 = Source_Serif_4({
 
 export const metadata: Metadata = {
   title: {
-    default: "Arcoíris Moda Infantil - Ropa de Bebés 0-24M | Ecuador",
-    template: "%s | Arcoíris Moda Infantil",
+    default: "todoShop - Tu tienda universitaria | Ecuador",
+    template: "%s | todoShop",
   },
   description:
-    "Arcoíris Moda Infantil - Ropa de bebés 0-24 meses con estilo y comodidad. Viste con estilo a tus pequeños. Envíos a todo Ecuador. Pedidos por WhatsApp.",
+    "todoShop - La plataforma de venta para estudiantes universitarios. Compra y reserva productos y alimentos de emprendedores estudiantiles. Envíos a todo Ecuador.",
   keywords: [
-    "ropa bebés Ecuador",
-    "moda infantil",
-    "ropa 0-24 meses",
-    "bebé ropa Guayaquil",
-    "ropa niños Samborondón",
-    "envío ropa bebé",
-    "Arcoíris Moda",
-    "ropa infantil Ecuador",
+    "tienda universitaria",
+    "estudiantes Ecuador",
+    "compra online estudiantes",
+    "emprendedores universitarios",
+    "productos estudiantes",
+    "alimentos reservas",
+    "todoShop",
+    "plataforma universitaria",
   ],
-  creator: "Arcoíris Moda Infantil",
+  creator: "todoShop",
   metadataBase: new URL(SITE_URL),
   icons: {
     icon: "/favicon.ico",
@@ -55,15 +55,15 @@ export const metadata: Metadata = {
     locale: "es_ES",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: "Arcoíris Moda Infantil - Ropa de Bebés",
+    title: "todoShop - Tu tienda universitaria",
     description:
-      "Viste con estilo y comodidad a tus pequeños. Ropa de bebés 0-24M con envíos a todo Ecuador.",
+      "La plataforma de venta para estudiantes universitarios. Compra y reserva productos y alimentos de emprendedores estudiantiles.",
     images: [
       {
         url: `${SITE_URL}/og-image.jpg`,
         width: 1200,
         height: 630,
-        alt: "Julietas Flowers - Florería Samborondón",
+        alt: "todoShop - Tienda universitaria",
         type: "image/jpeg",
       },
     ],
@@ -72,9 +72,9 @@ export const metadata: Metadata = {
   // Twitter Card
   twitter: {
     card: "summary_large_image",
-    title: "Julietas Flowers - Florería Samborondón",
+    title: "todoShop - Tu tienda universitaria",
     description:
-      "Creamos emociones con cada flor. Rosas y arreglos personalizados en Guayaquil.",
+      "La plataforma de venta para estudiantes universitarios. Compra y reserva productos y alimentos de emprendedores estudiantiles.",
     images: [`${SITE_URL}/twitter-image.jpg`],
   },
 
@@ -99,7 +99,7 @@ export const metadata: Metadata = {
 
   // Verificación
   verification: {
-    google: "tu-codigo-google-search-console", // Reemplazar con tu código
+    google: "tu-codigo-google-search-console",
   },
 
   // Apple

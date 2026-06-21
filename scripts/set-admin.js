@@ -28,19 +28,29 @@ admin.initializeApp({
 
 const adminAuth = admin.auth();
 
-async function setAdmin(email) {
+async function setAdmin(email, role) {
   try {
     console.log(`🔍 Buscando usuario: ${email}`);
     
     // Obtener usuario por email
     const user = await adminAuth.getUserByEmail(email);
     console.log(`✓ Usuario encontrado: ${user.uid}`);
+
+    let claims = {};
+    if (role === "admin") {
+      claims = { admin: true };
+      console.log(`⚙️  Estableciendo claim admin...`);
+    } else if (role === "emprendedor") {
+      claims = { role: "emprendedor" };
+      console.log(`⚙️  Estableciendo claim emprendedor...`);
+    } else {
+      console.error(`❌ Role desconocido: ${role}. Usa admin o emprendedor.`);
+      process.exit(1);
+    }
+
+    await adminAuth.setCustomUserClaims(user.uid, claims);
     
-    // Establecer custom claim
-    console.log(`⚙️  Estableciendo claim admin...`);
-    await adminAuth.setCustomUserClaims(user.uid, { admin: true });
-    
-    console.log(`✅ ¡ÉXITO! ${email} ahora es ADMIN`);
+    console.log(`✅ ¡ÉXITO! ${email} ahora es ${role.toUpperCase()}`);
     console.log(`   UID: ${user.uid}`);
     
   } catch (error) {
@@ -55,4 +65,5 @@ async function setAdmin(email) {
 
 // Obtener email del argumento o usar el default
 const email = process.argv[2] || 'hectorcobea03@gmail.com';
-setAdmin(email);
+const roleArg = process.argv[3] || 'admin';
+setAdmin(email, roleArg);

@@ -11,6 +11,8 @@ import {
 } from "../lib/categorias-db";
 import { obtenerProductos } from "../lib/productos-db";
 import { useUser } from "../context/UserContext";
+import { productMatches } from "../lib/search-utils";
+import { useRouter } from "next/navigation";
 
 // ─────────────────────────────────────────────
 // Acordeón de categorías para el drawer móvil
@@ -149,6 +151,12 @@ export const Navbar = () => {
   const { user, carrito } = useUser();
   const [windowWidth, setWindowWidth] = useState<number | null>(null);
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const router = useRouter();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -157,6 +165,39 @@ export const Navbar = () => {
       setCategorias(sortCategoriasByOrder(mapCategorySnapshot(snap.docs)));
     });
     return () => unsub();
+  }, []);
+
+  // Cargar productos para la búsqueda
+  useEffect(() => {
+    async function loadProducts() {
+      const products = await obtenerProductos();
+      setAllProducts(products);
+    }
+    loadProducts();
+  }, []);
+
+  // Filtrar productos según la búsqueda
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    const filtered = allProducts.filter(p => productMatches(p, searchQuery)).slice(0, 5);
+    setSearchResults(filtered);
+    setShowSearchDropdown(filtered.length > 0);
+  }, [searchQuery, allProducts]);
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+        setShowSearchDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -179,9 +220,28 @@ export const Navbar = () => {
     ? "/admin/products-by-category"
     : "/products-by-category";
 
-  const links = [
-    { href: "/", label: "Catálogo" },
-  ];
+  const links: { href: string; label: string }[] = [];
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search-results?query=${encodeURIComponent(searchQuery)}`);
+      setShowSearchDropdown(false);
+    }
+  };
+
+  const handleProductClick = (productId: string) => {
+    const isAdmin = user?.role === "admin";
+    const detailUrl = isAdmin ? `/admin/product-detail?id=${productId}` : `/product-detail?id=${productId}`;
+    router.push(detailUrl);
+    setShowSearchDropdown(false);
+    setSearchQuery("");
+  };
+
+  const getDetailUrl = (productId: string) => {
+    const isAdmin = user?.role === "admin";
+    return isAdmin ? `/admin/product-detail?id=${productId}` : `/product-detail?id=${productId}`;
+  };
 
   return (
     <>
@@ -198,7 +258,8 @@ export const Navbar = () => {
           className="relative flex items-center justify-between gap-4 px-4 py-2 lg:px-6 lg:py-2"
           style={{ color: "#000000" }}
         >
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Logo y buscador - izquierda */}
+          <div className="flex items-center gap-4 shrink-0">
             <button
               className="lg:hidden p-2 rounded-xl transition-colors text-black hover:bg-black/10"
               onClick={() => setMobileOpen(true)}
@@ -207,31 +268,105 @@ export const Navbar = () => {
               <span className="material-icons-round text-2xl">menu</span>
             </button>
 
-            <div className="hidden lg:flex items-center">
-              {links.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="px-4 py-2 rounded-full text-sm font-bold text-black transition-all hover:bg-black/10 hover:scale-105 whitespace-nowrap text-body"
+            <a
+              href="/"
+              className="flex items-center gap-2 shrink-0 text-black"
+            >
+              <span className="font-heading tracking-tight whitespace-nowrap text-lg sm:text-2xl font-black">
+                � todoShop
+              </span>
+            </a>
+
+            {/* Buscador */}
+            <div className="hidden md:flex items-center">
+              <div className="relative">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Buscar productos..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSearchSubmit();
+                    }
+                  }}
+                  className="w-64 px-4 py-2 rounded-full border-2 border-slate-200 focus:border-emerald-500 focus:outline-none text-sm"
+                />
+                <button
+                  onClick={handleSearchSubmit}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors"
                 >
-                  {link.label}
-                </Link>
-              ))}
+                  <span className="material-icons-round text-lg">search</span>
+                </button>
+
+                {/* Dropdown de resultados de búsqueda */}
+                {showSearchDropdown && searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border-2 border-slate-200 shadow-xl max-h-96 overflow-y-auto z-50">
+                    {searchResults.map((product) => (
+                      <div
+                        key={product.id}
+                        onClick={() => handleProductClick(product.id)}
+                        className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                      >
+                        {product.imagenes && product.imagenes.length > 0 && (
+                          <img
+                            src={typeof product.imagenes[0] === 'string' ? product.imagenes[0] : URL.createObjectURL(product.imagenes[0])}
+                            alt={product.nombre}
+                            className="w-12 h-12 object-cover rounded-lg"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-black truncate">{product.nombre}</p>
+                          <p className="text-xs text-slate-500 truncate">{product.marca || ''}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Brand: absolutely centered horizontally */}
-          <div className="absolute inset-y-0 left-1/2 transform -translate-x-1/2 flex items-center pointer-events-none">
-            <a
-              href="/"
-              className="flex items-center gap-2 shrink-0 text-black pointer-events-auto"
+          {/* Categorías visibles en navbar - centro */}
+          <div className="hidden lg:flex items-center gap-2">
+            <Link
+              href="/reservas"
+              className="px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 whitespace-nowrap bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-md"
             >
-              <span className="font-heading tracking-tight whitespace-nowrap text-lg sm:text-2xl font-black">
-                🌈 Arcoíris
-              </span>
-            </a>
+              🍽️ Reservas
+            </Link>
+            
+            {/* Mostrar categorías visibles (máximo 8) */}
+            {categorias
+              .filter(cat => cat.visibleEnNavbar)
+              .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+              .slice(0, 8)
+              .map(cat => (
+                <Link
+                  key={cat.id}
+                  href={`${basePath}?cat=${cat.id}`}
+                  className="px-5 py-2.5 rounded-full text-sm font-bold text-black transition-all hover:bg-black/10 hover:scale-105 whitespace-nowrap border-2 border-slate-200 flex items-center gap-1"
+                >
+                  {cat.icono && (
+                    <span className="material-icons-round" style={{ fontSize: 16 }}>{cat.icono}</span>
+                  )}
+                  {cat.nombre}
+                </Link>
+              ))}
+            
+            {/* Botón "Ver más" si hay más categorías visibles */}
+            {categorias.filter(cat => cat.visibleEnNavbar).length > 8 && (
+              <Link
+                href="/products-by-category"
+                className="px-5 py-2.5 rounded-full text-sm font-bold text-slate-600 transition-all hover:bg-black/10 hover:scale-105 whitespace-nowrap border-2 border-slate-200"
+              >
+                Ver más...
+              </Link>
+            )}
           </div>
 
+          {/* Carrito y usuario - derecha */}
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
             <div className="relative flex flex-col items-center">
               <a
@@ -296,114 +431,6 @@ export const Navbar = () => {
             
           </div>
         </div>
-
-        <div className="hidden items-center justify-center gap-1 px-6 border-t flex-wrap" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-          {/* Categorías dinámicas */}
-          {/* Categorías dinámicas */}
-          {categorias.map((cat) => (
-            <div 
-              key={cat.id} 
-              className="relative group shrink-0"
-              onMouseEnter={() => windowWidth !== null && windowWidth >= 1024 && setOpenCatId(cat.id)}
-              onMouseLeave={() => windowWidth !== null && windowWidth >= 1024 && setOpenCatId(null)}
-            >
-              {cat.subcategorias?.length > 0 ? (
-                <button
-                  onClick={() => setOpenCatId(openCatId === cat.id ? null : cat.id)}
-                  className="flex items-center gap-1 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-shadow rounded-xl hover:shadow-sm text-black dark:text-white"
-                >
-                  {cat.icono && (
-                    <span className="material-icons-round dark:text-white" style={{ fontSize: 15 }}>{cat.icono}</span>
-                  )}
-                  <span className="dark:text-white">{cat.nombre}</span>
-                  <span
-                    className="material-icons-round dark:text-white transition-transform duration-200"
-                    style={{ fontSize: 14, transform: openCatId === cat.id ? "rotate(180deg)" : "rotate(0deg)" }}
-                  >
-                    arrow_drop_down
-                  </span>
-                </button>
-              ) : (
-                <Link
-                  href={`${basePath}?cat=${cat.id}`}
-                  className="flex items-center gap-1 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-shadow rounded-xl hover:shadow-sm text-black dark:text-white"
-                >
-                  {cat.icono && (
-                    <span className="material-icons-round dark:text-white" style={{ fontSize: 15 }}>{cat.icono}</span>
-                  )}
-                  <span className="dark:text-white">{cat.nombre}</span>
-                </Link>
-              )}
-
-              {/* Dropdown nivel 1 */}
-              {cat.subcategorias?.length > 0 && (
-                <div
-                  className="absolute left-0 top-full min-w-52 rounded-2xl border hover:text-black shadow-xl py-1.5 z-50 bg-white dark:bg-[#181028]"
-                  style={{
-                    borderColor: "var(--border)",
-                    opacity: openCatId === cat.id ? "1" : "0",
-                    pointerEvents: openCatId === cat.id ? "auto" : "none",
-                    transform: openCatId === cat.id ? "translateY(0)" : "translateY(-10px)",
-                    transition: "all 150ms",
-                  }}
-                >
-                  {cat.subcategorias.map((sub: any) => (
-                    <div 
-                      key={sub.id} 
-                      className="relative group/sub"
-                      onMouseEnter={() => windowWidth !== null && windowWidth >= 1024 && setOpenSubId(sub.id)}
-                      onMouseLeave={() => windowWidth !== null && windowWidth >= 1024 && setOpenSubId(null)}
-                    >
-                      {sub.subcategorias?.length > 0 ? (
-                        <button
-                          onClick={() => setOpenSubId(openSubId === sub.id ? null : sub.id)}
-                          className="w-full flex items-center justify-between px-4 py-2.5 text-sm transition-shadow text-slate-900 hover:shadow-sm rounded-md"
-                        >
-                          <span className="text-slate-900 group-hover/sub:text-black transition-colors">{sub.nombre}</span>
-                          <span 
-                            className="material-icons-round text-sm text-slate-500 hover:text-black transition-transform duration-200"
-                            style={{ transform: openSubId === sub.id ? "rotate(90deg)" : "rotate(0deg)" }}
-                          >
-                            chevron_right
-                          </span>
-
-                          {/* Dropdown nivel 2 */}
-                          <div
-                            className="absolute left-full top-0 ml-1 min-w-44 rounded-2xl border shadow-xl py-1.5 z-60 bg-white hover:text-black"
-                            style={{
-                              borderColor: "var(--border)",
-                              opacity: openSubId === sub.id ? "1" : "0",
-                              pointerEvents: openSubId === sub.id ? "auto" : "none",
-                              transform: openSubId === sub.id ? "translateX(0)" : "translateX(-10px)",
-                              transition: "all 150ms",
-                            }}
-                          >
-                            {sub.subcategorias.map((subsub: any) => (
-                              <Link
-                                key={subsub.id}
-                                href={`${basePath}?cat=${cat.id}&sub=${sub.id}&subsub=${subsub.id}`}
-                                className="block px-4 py-2.5 text-sm hover:text-black transition-colors text-slate-900"
-                              >
-                                <span className="hover:text-black">{subsub.nombre}</span>
-                              </Link>
-                            ))}
-                          </div>
-                        </button>
-                      ) : (
-                        <Link
-                          href={`${basePath}?cat=${cat.id}&sub=${sub.id}`}
-                          className="block px-4 py-2.5 text-sm transition-shadow text-slate-900 hover:shadow-sm rounded-md"
-                        >
-                          <span className="group-hover/sub:text-black transition-colors">{sub.nombre}</span>
-                        </Link>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
       </nav>
 
       {/* ══════════════════ MOBILE DRAWER ══════════════════ */}
@@ -426,7 +453,7 @@ export const Navbar = () => {
               style={{ borderColor: "#E0E0E0" }}
             >
               <span className="font-bold text-base" style={{ color: "#000000" }}>
-                🌈 Arcoíris
+                � todoShop
               </span>
               <button
                 onClick={() => setMobileOpen(false)}
@@ -438,7 +465,100 @@ export const Navbar = () => {
             </div>
 
             <div className="flex-1 px-4 py-4 flex flex-col gap-1">
-              {/* Links */}
+              {/* Buscador móvil */}
+              <div className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar productos..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSearchSubmit();
+                        setMobileOpen(false);
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-emerald-500 focus:outline-none text-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      handleSearchSubmit();
+                      setMobileOpen(false);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors"
+                  >
+                    <span className="material-icons-round text-lg">search</span>
+                  </button>
+
+                  {/* Dropdown de resultados de búsqueda móvil */}
+                  {showSearchDropdown && searchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border-2 border-slate-200 shadow-xl max-h-96 overflow-y-auto z-50">
+                      {searchResults.map((product) => (
+                        <div
+                          key={product.id}
+                          onClick={() => {
+                            handleProductClick(product.id);
+                            setMobileOpen(false);
+                          }}
+                          className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                        >
+                          {product.imagenes && product.imagenes.length > 0 && (
+                            <img
+                              src={typeof product.imagenes[0] === 'string' ? product.imagenes[0] : URL.createObjectURL(product.imagenes[0])}
+                              alt={product.nombre}
+                              className="w-12 h-12 object-cover rounded-lg"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-black truncate">{product.nombre}</p>
+                            <p className="text-xs text-slate-500 truncate">{product.marca || ''}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Links principales */}
+              <a
+                href="/reservas"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors bg-emerald-50 text-emerald-700"
+              >
+                <span className="material-icons-round text-lg">restaurant</span>
+                🍽️ Reservas
+              </a>
+              
+              {/* Categorías visibles en navbar móvil */}
+              {categorias
+                .filter(cat => cat.visibleEnNavbar)
+                .sort((a, b) => (a.orden || 0) - (b.orden || 0))
+                .slice(0, 8)
+                .map(cat => (
+                  <a
+                    key={cat.id}
+                    href={`${basePath}?cat=${cat.id}`}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
+                    style={{ color: "#000000" }}
+                  >
+                    {cat.icono && (
+                      <span className="material-icons-round text-lg">{cat.icono}</span>
+                    )}
+                    {cat.nombre}
+                  </a>
+                ))}
+              
+              <a
+                href="/products-by-category"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
+                style={{ color: "#000000" }}
+              >
+                <span className="material-icons-round text-lg">category</span>
+                📂 Ver todas las categorías
+              </a>
+
+              {/* Links antiguos (vacío) */}
               {links.map((link) => (
                 <a
                   key={link.href}

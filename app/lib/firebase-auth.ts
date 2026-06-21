@@ -8,6 +8,7 @@ import {
 	getIdTokenResult,
 	User,
 } from "firebase/auth";
+import { getRoleFromFirebaseClaims } from "./auth-roles";
 
 // RECUPERAR CONTRASEÑA
 export async function sendPasswordResetEmail(email: string) {
@@ -23,12 +24,13 @@ export async function loginUser(email: string, password: string) {
 
 		const idToken = await getIdToken(user, true);
 		const tokenResult = await getIdTokenResult(user);
-		if (tokenResult.claims.admin !== true) {
+		const userRole = getRoleFromFirebaseClaims(tokenResult.claims as any);
+		if (userRole !== "admin" && userRole !== "emprendedor") {
 			await signOut(auth);
-			throw new Error("Solo el administrador puede iniciar sesión en esta tienda.");
+			throw new Error("Solo el administrador o el emprendedor puede iniciar sesión en esta tienda.");
 		}
 
-		return { success: true, user, idToken };
+		return { success: true, user, idToken, role: userRole };
 	} catch (error: any) {
 		throw new Error(error.message || "Error al iniciar sesión");
 	}
@@ -40,7 +42,7 @@ export async function logoutUser() {
 }
 
 // OBTENER USUARIO ACTUAL Y SU ROL
-export async function getCurrentUser(): Promise<null | (User & { role?: string })> {
+export async function getCurrentUser(): Promise<null | (User & { role?: string; tipoEmprendimiento?: string })> {
 	return new Promise((resolve) => {
 		onAuthStateChanged(auth, async (user) => {
 			if (!user) return resolve(null);
@@ -50,11 +52,18 @@ export async function getCurrentUser(): Promise<null | (User & { role?: string }
 				const res = await fetch("/api/auth/me", {
 					headers: { Authorization: `Bearer ${idToken}` },
 				});
+				console.log("[getCurrentUser] Status de la respuesta:", res.status);
 				if (res.ok) {
 					const data = await res.json();
-					return resolve({ ...user, role: data.role });
+					console.log("[getCurrentUser] Datos de la API:", data);
+					return resolve({ ...user, role: data.role, tipoEmprendimiento: data.tipoEmprendimiento });
+				} else {
+					const errorData = await res.json();
+					console.error("[getCurrentUser] Error en la API:", errorData);
 				}
-			} catch (e) {}
+			} catch (e) {
+				console.error("[getCurrentUser] Error:", e);
+			}
 			// Si falla, solo devuelve el usuario
 			resolve(user);
 		});
@@ -73,9 +82,14 @@ export async function redirectIfLoggedIn(router: any) {
 			});
 			if (res.ok) {
 				const data = await res.json();
-				if (data.role === "admin") router.push("/admin");
-				else router.push("/login");
-				return;
+				if (data.role === "admin") {
+					router.push("/admin");
+					return;
+				}
+				if (data.role === "emprendedor") {
+					router.push("/emprendedor/inventario");
+					return;
+				}
 			}
 		} catch (e) {}
 		router.push("/login");

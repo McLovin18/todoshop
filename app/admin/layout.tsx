@@ -9,13 +9,12 @@ export default function HomeLayout({ children }) {
   useEffect(() => {
     getCurrentUser().then((user) => {
       if (user?.role === "admin") setRole("admin");
+      else if (user?.role === "emprendedor") setRole("emprendedor");
       else setRole("admin");
     });
   }, []);
   return (
-    
     <div className="flex">
-
       <Sidebar role={role} />
       <main className="flex-1">
         {children}

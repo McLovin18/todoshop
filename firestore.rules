@@ -12,10 +12,33 @@ service cloud.firestore {
     
     match /admin/{document=**} {
       allow read, write: if request.auth != null && request.auth.token.admin == true;
+      
     }
 
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Reglas para emprendedores
+    match /emprendedores/{emprendedorId} {
+      // Lectura pública para que la página de reservas pueda obtener el teléfono
+      allow read: if true;
+      // Permitir consultas por uid o email para el propio usuario
+      allow list: if isAdmin() || (
+        isSignedIn() && (
+          request.query.uid == request.auth.uid ||
+          request.query.email == request.auth.token.email
+        )
+      );
+      // Solo admin puede crear/editar/eliminar emprendedores
+      // Emprendedor puede actualizar su propio documento (para teléfono)
+      allow delete: if isAdmin();
+      allow create, update: if isAdmin() || (
+        isSignedIn() && (
+          request.auth.uid == emprendedorId ||
+          resource.data.email == request.auth.token.email
+        )
+      );
     }
 
     match /productos/{productId} {
@@ -40,6 +63,31 @@ service cloud.firestore {
     match /categorias/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /categoriasAlimentos/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /alimentos/{document=**} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /reservas/{document=**} {
+      // Lectura: el emprendedor puede leer sus propias reservas
+      allow read: if isSignedIn() && (
+        resource.data.emprendedorId == request.auth.uid ||
+        isAdmin()
+      );
+      // Escritura: el emprendedor puede crear reservas para sus alimentos
+      allow create: if isSignedIn();
+      // Actualizar y eliminar: solo el emprendedor dueño o admin
+      allow update, delete: if isSignedIn() && (
+        resource.data.emprendedorId == request.auth.uid ||
+        isAdmin()
+      );
     }
 
     match /bodegas/{bodegaId} {

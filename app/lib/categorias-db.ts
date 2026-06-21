@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 
 const COLLECTION = "categorias";
+const COLLECTION_ALIMENTOS = "categoriasAlimentos";
 
 /** Garantiza que el id del documento Firestore no sea sobrescrito por data().id */
 export function mapCategoryDoc(
@@ -175,4 +176,23 @@ export async function actualizarCategoria(id, data) {
 
 export async function eliminarCategoria(id) {
   await deleteDoc(doc(db, COLLECTION, id));
+}
+
+// ==================== CATEGORÍAS DE ALIMENTOS ====================
+
+export async function obtenerCategoriasAlimentos() {
+  const snapshot = await getDocs(collection(db, COLLECTION_ALIMENTOS));
+  return sortCategoriasByOrder(mapCategorySnapshot(snapshot.docs));
+}
+
+export async function guardarCategoriaAlimento(categoria) {
+  await setDoc(doc(db, COLLECTION_ALIMENTOS, categoria.id), cleanUndefinedDeep(categoria));
+}
+
+export async function actualizarCategoriaAlimento(id, data) {
+  await updateDoc(doc(db, COLLECTION_ALIMENTOS, id), cleanUndefinedDeep(data));
+}
+
+export async function eliminarCategoriaAlimento(id) {
+  await deleteDoc(doc(db, COLLECTION_ALIMENTOS, id));
 }

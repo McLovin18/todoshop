@@ -26,6 +26,7 @@ export function proxy(req: NextRequest) {
   const roleCookie = req.cookies.get("role")?.value;
 
   const isAdminArea = pathname.startsWith("/admin");
+  const isEmprendedorArea = pathname.startsWith("/emprendedor");
   const publicPath = isPublicPath(pathname);
 
   const redirectTo = (path: string) => NextResponse.redirect(new URL(path, req.url));
@@ -33,19 +34,19 @@ export function proxy(req: NextRequest) {
   // Debug logging
   console.log(`[proxy] pathname: ${pathname}, session: ${!!session}, role: ${roleCookie}`);
 
-  // Sin sesión: se bloquea zona protegida (/admin) y se redirige al landing
+  // Sin sesión: se bloquea zona protegida (/admin o /emprendedor) y se redirige al landing
   if (!session) {
-    if (isAdminArea) {
+    if (isAdminArea || isEmprendedorArea) {
       return redirectTo("/");
     }
     return NextResponse.next();
   }
 
-  const role = roleCookie as "admin" | undefined;
+  const role = roleCookie as "admin" | "emprendedor" | "cliente" | undefined;
 
-  // Usuario autenticado sin rol definido: no puede entrar a /admin
-  if (!role) {
-    if (isAdminArea) {
+  // Usuario autenticado sin rol válido: no puede entrar a /admin ni /emprendedor
+  if (!role || (role !== "admin" && role !== "emprendedor")) {
+    if (isAdminArea || isEmprendedorArea) {
       return redirectTo("/login");
     }
     return NextResponse.next();
@@ -53,14 +54,25 @@ export function proxy(req: NextRequest) {
 
   // Admin autenticado
   if (role === "admin") {
-    // También redirigimos admin fuera de páginas públicas/login
+    // Permitir a los administradores acceder a /emprendedor si lo necesitan
+    // Solo redirigir si intenta acceder a páginas públicas/login
     if (publicPath) {
       return redirectTo("/admin");
     }
     return NextResponse.next();
   }
 
-  // Default allow
+  // Emprendedor autenticado
+  if (role === "emprendedor") {
+    if (isAdminArea) {
+      return redirectTo("/emprendedor/inventario");
+    }
+    if (publicPath) {
+      return redirectTo("/emprendedor/inventario");
+    }
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
@@ -76,5 +88,6 @@ export const config = {
     "/order-confirmation/:path*",
     "/settings/:path*",
     "/admin/:path*",
+    "/emprendedor/:path*",
   ],
 };

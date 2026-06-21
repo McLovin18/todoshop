@@ -5,6 +5,7 @@ import { UserProvider } from "../context/UserContext";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import ToastContainer from "./ToastContainer";
+import BottomBar from "./BottomBar";
 
 export default function LayoutContentClient({ children }: { children: React.ReactNode }) {
   const { showWelcomeGlobal } = useOnboarding();
@@ -14,12 +15,19 @@ export default function LayoutContentClient({ children }: { children: React.Reac
   if (pathname === "/login" && showWelcomeGlobal) {
     return <>{children}</>;
   }
+  
+  // Determinar si es una página pública
+  const isPublicPage = pathname === "/" || pathname === "/productos" || pathname === "/reservas" || pathname === "/carrito";
+  
   return (
     <UserProvider>
       <ToastContainer />
       <Navbar />
-      {children}
+      <div className={isPublicPage ? "pb-20 lg:pb-0" : ""}>
+        {children}
+      </div>
       <Footer />
+      {isPublicPage && <BottomBar role="public" />}
     </UserProvider>
   );
 }

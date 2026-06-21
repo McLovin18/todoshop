@@ -1,13 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import type { Producto } from "../../lib/productos-db";
-import CategoriasAdminPanel from "./CategoriasAdminPanel";
-import CategoriasAlimentosAdminPanel from "./CategoriasAlimentosAdminPanel";
-import MarcasAdminPanel from "./MarcasAdminPanel";
-import BodegasAdminPanel from "./BodegasAdminPanel";
-import VariationsAdminPanel from "./VariationsAdminPanel";
 import ProductoFormModal from "./ProductoFormModal";
-import ProductoCard from "../../components/ProductoCard";
 import { obtenerCategorias } from "../../lib/categorias-db";
 import {
   crearProducto,
@@ -15,7 +9,7 @@ import {
   actualizarProducto,
   eliminarProducto
 } from "../../lib/productos-db";
-import { crearBodegaDefault } from "../../lib/bodegas-db";
+import { getCurrentUser } from "../../lib/firebase-auth";
 
 type FiltroStock = "todos" | "con-stock" | "poco-stock" | "sin-stock";
 
@@ -27,11 +21,11 @@ export default function AdminInventario() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [orden, setOrden] = useState("newest");
-  const [vista, setVista] = useState("productos");
   const [filtroStock, setFiltroStock] = useState<FiltroStock>("todos");
   const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
   const [selectedSubcategoria, setSelectedSubcategoria] = useState<string | null>(null);
   const [categoriasDb, setCategoriasDb] = useState<any[]>([]);
+  const [emprendedorId, setEmprendedorId] = useState<string | null>(null);
 
   function getStockTotal(producto: Producto) {
     const variantes = Array.isArray(producto.stockVariants) ? producto.stockVariants : [];
@@ -61,17 +55,19 @@ export default function AdminInventario() {
   useEffect(() => {
     async function fetchProductos() {
       setLoading(true);
-      const prods = await obtenerProductos({ incluirSinStock: true });
+      const prods = await obtenerProductos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined });
       setProductos(prods);
       setLoading(false);
     }
     
-    // Crear bodega default si no existe
-    crearBodegaDefault().catch(err => console.error("Error creando bodega default:", err));
+    // Obtener emprendedorId del usuario actual
+    getCurrentUser().then((user) => {
+      setEmprendedorId(user?.uid || null);
+    });
     
     fetchProductos();
     obtenerCategorias().then(setCategoriasDb).catch(err => console.error("Error cargando categorías:", err));
-  }, []);
+  }, [emprendedorId]);
 
   const categoriaLabelMap = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -134,78 +130,15 @@ export default function AdminInventario() {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-950">
       <div className="flex-1 w-full py-6 sm:py-15 px-4 pt-4 pb-24">
 
-        {/* NAV ADMIN */}
+        {/* NAV EMPRENDEDOR */}
         <div className="flex gap-2 mb-6">
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "productos"
-                ? "bg-purple-700 text-white border-purple-700"
-                : "bg-white text-purple-700 border-purple-700"
-            }`}
-            onClick={() => setVista("productos")}
-          >
+          <div className="flex-1 py-3 rounded-xl font-bold border-2 bg-purple-700 text-white border-purple-700">
             Productos
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "variaciones"
-                ? "bg-indigo-700 text-white border-indigo-700"
-                : "bg-white text-indigo-700 border-indigo-700"
-            }`}
-            onClick={() => setVista("variaciones")}
-          >
-            Variaciones
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "marcas"
-                ? "bg-green-700 text-white border-green-700"
-                : "bg-white text-green-700 border-green-700"
-            }`}
-            onClick={() => setVista("marcas")}
-          >
-            Marcas
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "categorias"
-                ? "bg-blue-700 text-white border-blue-700"
-                : "bg-white text-blue-700 border-blue-700"
-            }`}
-            onClick={() => setVista("categorias")}
-          >
-            Categorías
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "categorias-alimentos"
-                ? "bg-emerald-600 text-white border-emerald-600"
-                : "bg-white text-emerald-600 border-emerald-600"
-            }`}
-            onClick={() => setVista("categorias-alimentos")}
-          >
-            Cat. Alimentos
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "bodegas"
-                ? "bg-red-700 text-white border-red-700"
-                : "bg-white text-red-700 border-red-700"
-            }`}
-            onClick={() => setVista("bodegas")}
-          >
-            Bodegas
-          </button>
+          </div>
         </div>
 
         {/* ================== VISTA PRODUCTOS ================== */}
-        {vista === "productos" && (
-          <>
+        <>
             {/* RESUMEN */}
             <div className="flex gap-8 items-center mb-4 text-base text-slate-700 dark:text-slate-200">
               <div>Total: <b>{resumen.total}</b></div>
@@ -308,9 +241,9 @@ export default function AdminInventario() {
                 if (editData) {
                   await actualizarProducto(editData.id, data);
                 } else {
-                  await crearProducto({ ...data, destacado: false });
+                  await crearProducto({ ...data, destacado: false }, emprendedorId || undefined);
                 }
-                const prods = await obtenerProductos({ incluirSinStock: true });
+                const prods = await obtenerProductos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined });
                 setProductos(prods);
                 setShowForm(false);
                 setEditData(null);
@@ -354,7 +287,7 @@ export default function AdminInventario() {
                                   <div className="mt-1 flex items-center gap-2 text-xs whitespace-nowrap">
                                     <button className="text-rose-600 font-medium" onClick={() => { setEditData(p); setShowForm(true); }}>Editar</button>
                                     <span className="text-slate-300">|</span>
-                                    <button className="text-slate-600 hover:text-slate-900" onClick={async () => { if (confirm("¿Eliminar producto?")) { await eliminarProducto(p.id); const prods = await obtenerProductos({ incluirSinStock: true }); setProductos(prods); } }}>Eliminar</button>
+                                    <button className="text-slate-600 hover:text-slate-900" onClick={async () => { if (confirm("¿Eliminar producto?")) { await eliminarProducto(p.id); const prods = await obtenerProductos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined }); setProductos(prods); } }}>Eliminar</button>
                                   </div>
                                 </div>
                               </div>
@@ -399,14 +332,6 @@ export default function AdminInventario() {
               </div>
             </div>
           </>
-        )}
-
-        {/* ================== OTRAS VISTAS ================== */}
-        {vista === "variaciones" && <VariationsAdminPanel />}
-        {vista === "marcas" && <MarcasAdminPanel />}
-        {vista === "categorias" && <CategoriasAdminPanel />}
-        {vista === "categorias-alimentos" && <CategoriasAlimentosAdminPanel />}
-        {vista === "bodegas" && <BodegasAdminPanel />}
 
       </div>
     </div>

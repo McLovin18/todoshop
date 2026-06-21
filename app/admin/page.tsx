@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
 export default function AdminPage() {
   return (
@@ -20,9 +21,13 @@ export default function AdminPage() {
             ¡Bienvenido!
           </h2>
           <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-            Este es el panel de administración. Los clientes compran a través del catálogo y 
-            envían sus órdenes por WhatsApp.
+            Este es el panel de administración. Los clientes compran a través del catálogo y envían sus órdenes por WhatsApp.
           </p>
+          <div className="mt-6">
+            <Link href="/admin/emprendedores" className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition">
+              Gestionar emprendedores
+            </Link>
+          </div>
         </div>
       </div>
     </div>

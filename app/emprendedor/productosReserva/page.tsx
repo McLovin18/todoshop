@@ -1,45 +1,43 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import type { Producto } from "../../lib/productos-db";
-import CategoriasAdminPanel from "./CategoriasAdminPanel";
-import CategoriasAlimentosAdminPanel from "./CategoriasAlimentosAdminPanel";
-import MarcasAdminPanel from "./MarcasAdminPanel";
-import BodegasAdminPanel from "./BodegasAdminPanel";
-import VariationsAdminPanel from "./VariationsAdminPanel";
-import ProductoFormModal from "./ProductoFormModal";
-import ProductoCard from "../../components/ProductoCard";
-import { obtenerCategorias } from "../../lib/categorias-db";
+import type { Alimento } from "../../lib/alimentos-db";
+import type { Alimento as AlimentoForm } from "./AlimentoForm";
+import AlimentoFormModal from "./AlimentoFormModal";
+import { obtenerCategoriasAlimentos } from "../../lib/categorias-db";
 import {
-  crearProducto,
-  obtenerProductos,
-  actualizarProducto,
-  eliminarProducto
-} from "../../lib/productos-db";
-import { crearBodegaDefault } from "../../lib/bodegas-db";
+  crearAlimento,
+  obtenerAlimentos,
+  actualizarAlimento,
+  eliminarAlimento
+} from "../../lib/alimentos-db";
+import { getCurrentUser } from "../../lib/firebase-auth";
+import { db } from "../../lib/firebase";
+import { query, where, getDocs, collection } from "firebase/firestore";
 
 type FiltroStock = "todos" | "con-stock" | "poco-stock" | "sin-stock";
 
-export default function AdminInventario() {
+export default function ProductosReservaPage() {
 
   const [showForm, setShowForm] = useState(false);
-  const [editData, setEditData] = useState<Producto | null>(null);
-  const [productos, setProductos] = useState<Producto[]>([]);
+  const [editData, setEditData] = useState<AlimentoForm | null>(null);
+  const [productos, setProductos] = useState<Alimento[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [orden, setOrden] = useState("newest");
-  const [vista, setVista] = useState("productos");
   const [filtroStock, setFiltroStock] = useState<FiltroStock>("todos");
   const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
   const [selectedSubcategoria, setSelectedSubcategoria] = useState<string | null>(null);
   const [categoriasDb, setCategoriasDb] = useState<any[]>([]);
+  const [emprendedorId, setEmprendedorId] = useState<string | null>(null);
+  const [emprendedorEmail, setEmprendedorEmail] = useState<string | null>(null);
 
-  function getStockTotal(producto: Producto) {
-    const variantes = Array.isArray(producto.stockVariants) ? producto.stockVariants : [];
+  function getStockTotal(alimento: Alimento) {
+    const variantes = Array.isArray(alimento.stockVariants) ? alimento.stockVariants : [];
     if (variantes.length > 0) {
       return variantes.reduce((sum, variant) => sum + Number(variant?.cantidad || 0), 0);
     }
 
-    return Number(producto.stock || 0);
+    return Number(alimento.stock || 0);
   }
 
   // 📊 Resumen de inventario
@@ -61,16 +59,47 @@ export default function AdminInventario() {
   useEffect(() => {
     async function fetchProductos() {
       setLoading(true);
-      const prods = await obtenerProductos({ incluirSinStock: true });
+      const prods = await obtenerAlimentos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined });
       setProductos(prods);
       setLoading(false);
     }
     
-    // Crear bodega default si no existe
-    crearBodegaDefault().catch(err => console.error("Error creando bodega default:", err));
+    if (emprendedorId) {
+      fetchProductos();
+    }
+  }, [emprendedorId]);
+  
+  // 🔄 Obtener emprendedorId del usuario actual buscando por email
+  useEffect(() => {
+    getCurrentUser().then(async (user) => {
+      if (user?.email) {
+        try {
+          // Buscar documento de emprendedor por email
+          const q = query(collection(db, "emprendedores"), where("email", "==", user.email));
+          const querySnapshot = await getDocs(q);
+          
+          if (!querySnapshot.empty) {
+            // Usar el ID del documento encontrado
+            const docId = querySnapshot.docs[0].id;
+            setEmprendedorId(docId);
+            setEmprendedorEmail(user.email);
+          } else {
+            // Si no existe, usar el UID del usuario
+            setEmprendedorId(user.uid);
+            setEmprendedorEmail(user.email);
+          }
+        } catch (error) {
+          console.error("Error al buscar emprendedor:", error);
+          setEmprendedorId(user?.uid || null);
+          setEmprendedorEmail(user?.email || null);
+        }
+      } else {
+        setEmprendedorId(user?.uid || null);
+        setEmprendedorEmail(user?.email || null);
+      }
+    });
     
-    fetchProductos();
-    obtenerCategorias().then(setCategoriasDb).catch(err => console.error("Error cargando categorías:", err));
+    obtenerCategoriasAlimentos().then(setCategoriasDb).catch(err => console.error("Error cargando categorías de alimentos:", err));
   }, []);
 
   const categoriaLabelMap = React.useMemo(() => {
@@ -85,7 +114,7 @@ export default function AdminInventario() {
     return map;
   }, [categoriasDb]);
 
-  // Categorías y subcategorías disponibles (extraídas de los productos cargados)
+  // Categorías y subcategorías disponibles (extraídas de los alimentos cargados)
   const categoriasUnicas = React.useMemo(() => {
     return Array.from(new Set(productos.map(p => p.categoria).filter(Boolean as any)));
   }, [productos]);
@@ -99,9 +128,9 @@ export default function AdminInventario() {
 
   const formatCategoria = (id?: string) => (id ? categoriaLabelMap.get(id) || id : "-");
 
-  const getCreatedAtMs = (producto: Producto) => {
-    if (typeof producto.createdAt === "number") return producto.createdAt;
-    if (producto.createdAt instanceof Date) return producto.createdAt.getTime();
+  const getCreatedAtMs = (alimento: Alimento) => {
+    if (typeof alimento.createdAt === "number") return alimento.createdAt;
+    if (alimento.createdAt instanceof Date) return alimento.createdAt.getTime();
     return 0;
   };
 
@@ -134,85 +163,21 @@ export default function AdminInventario() {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-950">
       <div className="flex-1 w-full py-6 sm:py-15 px-4 pt-4 pb-24">
 
-        {/* NAV ADMIN */}
+        {/* NAV EMPRENDEDOR */}
         <div className="flex gap-2 mb-6">
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "productos"
-                ? "bg-purple-700 text-white border-purple-700"
-                : "bg-white text-purple-700 border-purple-700"
-            }`}
-            onClick={() => setVista("productos")}
-          >
-            Productos
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "variaciones"
-                ? "bg-indigo-700 text-white border-indigo-700"
-                : "bg-white text-indigo-700 border-indigo-700"
-            }`}
-            onClick={() => setVista("variaciones")}
-          >
-            Variaciones
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "marcas"
-                ? "bg-green-700 text-white border-green-700"
-                : "bg-white text-green-700 border-green-700"
-            }`}
-            onClick={() => setVista("marcas")}
-          >
-            Marcas
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "categorias"
-                ? "bg-blue-700 text-white border-blue-700"
-                : "bg-white text-blue-700 border-blue-700"
-            }`}
-            onClick={() => setVista("categorias")}
-          >
-            Categorías
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "categorias-alimentos"
-                ? "bg-emerald-600 text-white border-emerald-600"
-                : "bg-white text-emerald-600 border-emerald-600"
-            }`}
-            onClick={() => setVista("categorias-alimentos")}
-          >
-            Cat. Alimentos
-          </button>
-
-          <button
-            className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
-              vista === "bodegas"
-                ? "bg-red-700 text-white border-red-700"
-                : "bg-white text-red-700 border-red-700"
-            }`}
-            onClick={() => setVista("bodegas")}
-          >
-            Bodegas
-          </button>
+          <div className="flex-1 py-3 rounded-xl font-bold border-2 bg-emerald-600 text-white border-emerald-600">
+            Alimentos para Reserva
+          </div>
         </div>
 
         {/* ================== VISTA PRODUCTOS ================== */}
-        {vista === "productos" && (
-          <>
-            {/* RESUMEN */}
-            <div className="flex gap-8 items-center mb-4 text-base text-slate-700 dark:text-slate-200">
-              <div>Total: <b>{resumen.total}</b></div>
-              <div>Stock: <b>{resumen.conStock}</b></div>
-              <div>Poco: <b>{resumen.pocoStock}</b></div>
-              <div>Sin stock: <b>{resumen.sinStock}</b></div>
-            </div>
+        {/* RESUMEN */}
+        <div className="flex gap-8 items-center mb-4 text-base text-slate-700 dark:text-slate-200">
+          <div>Total: <b>{resumen.total}</b></div>
+          <div>Stock: <b>{resumen.conStock}</b></div>
+          <div>Poco: <b>{resumen.pocoStock}</b></div>
+          <div>Sin stock: <b>{resumen.sinStock}</b></div>
+        </div>
 
             {/* FILTRO STOCK */}
             <div className="flex gap-2 mb-4 flex-wrap">
@@ -292,25 +257,25 @@ export default function AdminInventario() {
               </div>
 
               <div className="ml-auto flex items-center gap-2">
-                <button className="px-4 py-2 rounded-full bg-rose-600 text-white" onClick={() => setShowForm(true)}>Registrar un producto</button>
+                <button className="px-4 py-2 rounded-full bg-red-600 text-white" onClick={() => setShowForm(true)}>Registrar un alimento</button>
               </div>
             </div>
 
             {/* MODAL */}
-            <ProductoFormModal
+            <AlimentoFormModal
               show={showForm}
               initialData={editData}
               onClose={() => {
                 setShowForm(false);
                 setEditData(null);
               }}
-              onSave={async (data: Producto) => {
+              onSave={async (data: any) => {
                 if (editData) {
-                  await actualizarProducto(editData.id, data);
+                  await actualizarAlimento((editData as any).id, data);
                 } else {
-                  await crearProducto({ ...data, destacado: false });
+                  await crearAlimento({ ...data, destacado: false }, emprendedorId || undefined, emprendedorEmail || undefined);
                 }
-                const prods = await obtenerProductos({ incluirSinStock: true });
+                const prods = await obtenerAlimentos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined });
                 setProductos(prods);
                 setShowForm(false);
                 setEditData(null);
@@ -321,14 +286,14 @@ export default function AdminInventario() {
             <div className="bg-white rounded-2xl shadow border overflow-hidden">
               <div className="max-h-[65vh] overflow-auto">
                 {loading ? (
-                  <div className="p-6 text-center">Cargando productos...</div>
+                  <div className="p-6 text-center">Cargando alimentos...</div>
                 ) : productosFiltrados.length === 0 ? (
-                  <div className="p-6 text-center">No hay productos</div>
+                  <div className="p-6 text-center">No hay alimentos</div>
                 ) : (
                   <table className="w-full min-w-245 table-fixed">
                     <thead className="bg-slate-50 text-slate-700 border-b">
                       <tr>
-                        <th className="text-left font-semibold px-6 py-4 w-[48%]">Producto</th>
+                        <th className="text-left font-semibold px-6 py-4 w-[48%]">Alimento</th>
                         <th className="text-left font-semibold px-4 py-4 w-[24%]">Fecha actualización</th>
                         <th className="text-center font-semibold px-4 py-4 w-[10%]">Destacado</th>
                         <th className="text-right font-semibold px-4 py-4 w-[9%]">Precio</th>
@@ -352,9 +317,9 @@ export default function AdminInventario() {
                                   <div className="font-semibold text-slate-800 truncate">{p.nombre}</div>
                                   <div className="text-xs text-slate-500 truncate">SKU: {p.sku || p.id}</div>
                                   <div className="mt-1 flex items-center gap-2 text-xs whitespace-nowrap">
-                                    <button className="text-rose-600 font-medium" onClick={() => { setEditData(p); setShowForm(true); }}>Editar</button>
+                                    <button className="text-emerald-600 font-medium" onClick={() => { setEditData(p as any); setShowForm(true); }}>Editar</button>
                                     <span className="text-slate-300">|</span>
-                                    <button className="text-slate-600 hover:text-slate-900" onClick={async () => { if (confirm("¿Eliminar producto?")) { await eliminarProducto(p.id); const prods = await obtenerProductos({ incluirSinStock: true }); setProductos(prods); } }}>Eliminar</button>
+                                    <button className="text-slate-600 hover:text-slate-900" onClick={async () => { if (confirm("¿Eliminar alimento?")) { await eliminarAlimento(p.id); const prods = await obtenerAlimentos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined }); setProductos(prods); } }}>Eliminar</button>
                                   </div>
                                 </div>
                               </div>
@@ -365,7 +330,7 @@ export default function AdminInventario() {
                                 <input
                                   type="checkbox"
                                   checked={Boolean(p.destacado)}
-                                  className="h-5 w-5 accent-purple-600 cursor-pointer"
+                                  className="h-5 w-5 accent-emerald-600 cursor-pointer"
                                   onChange={async (e) => {
                                     const isChecked = e.target.checked;
                                     setProductos((prev) =>
@@ -374,7 +339,7 @@ export default function AdminInventario() {
                                       )
                                     );
                                     try {
-                                      await actualizarProducto(p.id, { destacado: isChecked });
+                                      await actualizarAlimento(p.id, { destacado: isChecked });
                                     } catch (error) {
                                       console.error("Error actualizando destacado:", error);
                                       setProductos((prev) =>
@@ -384,7 +349,7 @@ export default function AdminInventario() {
                                       );
                                     }
                                   }}
-                                  aria-label={`Marcar ${p.nombre || "producto"} como destacado`}
+                                  aria-label={`Marcar ${p.nombre || "alimento"} como destacado`}
                                 />
                               </label>
                             </td>
@@ -398,15 +363,6 @@ export default function AdminInventario() {
                 )}
               </div>
             </div>
-          </>
-        )}
-
-        {/* ================== OTRAS VISTAS ================== */}
-        {vista === "variaciones" && <VariationsAdminPanel />}
-        {vista === "marcas" && <MarcasAdminPanel />}
-        {vista === "categorias" && <CategoriasAdminPanel />}
-        {vista === "categorias-alimentos" && <CategoriasAlimentosAdminPanel />}
-        {vista === "bodegas" && <BodegasAdminPanel />}
 
       </div>
     </div>

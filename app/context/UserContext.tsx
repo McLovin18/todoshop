@@ -4,6 +4,7 @@ import { getInitialFavorites, getInitialCart, saveFavorites, saveCart, mergeGues
 import { auth } from "../lib/firebase";
 import { onIdTokenChanged, getIdToken, getIdTokenResult } from "firebase/auth";
 import { Loading3DIcon } from "../components/Loading3DIcon";
+import { getRoleFromFirebaseClaims } from "../lib/auth-roles";
 
 
 
@@ -22,6 +23,7 @@ interface UserContextType {
   isLogged: boolean;
   isCliente: boolean;
   isAdmin: boolean;
+  isEmprendedor: boolean;
   user: AppUser | null;
   setUser: (u: AppUser | null) => void;
   favoritos: any[];
@@ -40,6 +42,7 @@ const UserContext = createContext<UserContextType>({
   isLogged: false,
   isCliente: false,
   isAdmin: false,
+  isEmprendedor: false,
   user: null,
   setUser: () => {},
   favoritos: [],
@@ -101,32 +104,43 @@ export function UserProvider({ children }: { children: ReactNode }) {
         await getIdToken(realUser, true);
         const idToken = await getIdToken(realUser);
         
-        // Intentar obtener rol desde backend si existe endpoint
+        // Leer claims directamente del token (más confiable que API)
         try {
+          const tokenResult = await getIdTokenResult(realUser);
+          const role = getRoleFromFirebaseClaims((tokenResult?.claims as any) || {});
+          console.log('[UserContext] Rol desde Firebase claims:', role);
+          setUser({ 
+            ...(realUser as any), 
+            role: role,
+            emailVerified: realUser.emailVerified 
+          });
+          setUserLoading(false);
+          return;
+        } catch (e) {
+          console.log('⚠️ Failed to get token result:', e);
+        }
+        
+        // Fallback: intentar obtener rol desde backend si existe endpoint
+        try {
+          console.log('[UserContext] Llamando a /api/auth/me (fallback)');
           const res = await fetch("/api/auth/me", { headers: { Authorization: `Bearer ${idToken}` } });
+          console.log('[UserContext] Status de /api/auth/me:', res.status);
           if (res.ok) {
             const data = await res.json();
+            console.log('[UserContext] Datos de /api/auth/me:', data);
             // Incluir emailVerified en el usuario sin bloquear acceso
             setUser({ ...(realUser as any), role: data.role, emailVerified: realUser.emailVerified });
             setUserLoading(false);
             return;
+          } else {
+            const errorData = await res.json();
+            console.error('[UserContext] Error en /api/auth/me:', errorData);
           }
         } catch (e) {
           console.log('⚠️ Failed to fetch user role from backend:', e);
         }
         
-        // Fallback: leer claims desde el token
-        try {
-          const tokenResult = await getIdTokenResult(realUser);
-          setUser({ 
-            ...(realUser as any), 
-            role: (tokenResult?.claims as any)?.role,
-            emailVerified: realUser.emailVerified 
-          });
-        } catch (e) {
-          console.log('⚠️ Failed to get token result:', e);
-          setUser({ ...(realUser as any), emailVerified: realUser.emailVerified });
-        }
+        setUser({ ...(realUser as any), emailVerified: realUser.emailVerified });
       } catch (err) {
         console.log('⚠️ Error in onIdTokenChanged:', err);
         setUser({ ...(realUser as any), emailVerified: realUser.emailVerified });
@@ -245,8 +259,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const isLogged = !!user;
-  const isCliente = false;
   const isAdmin = user?.role === "admin";
+  const isEmprendedor = user?.role === "emprendedor";
+  const isCliente = user?.role === "cliente";
   const loading = !cartReady || userLoading;
 
 
@@ -263,6 +278,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       isLogged,
       isCliente,
       isAdmin,
+      isEmprendedor,
       user,
       setUser,
       favoritos,
