@@ -61,6 +61,7 @@ const router = useRouter();
   const [categorias, setCategorias] = useState<any[]>([]);
   const [emprendedores, setEmprendedores] = useState<any[]>([]);
   const [filterNegocio, setFilterNegocio] = useState("");
+  const [showNegocioDropdown, setShowNegocioDropdown] = useState(false);
   const categoriesScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -318,6 +319,54 @@ const router = useRouter();
                 </button>
               )}
             </div>
+
+            {emprendedores.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowNegocioDropdown(!showNegocioDropdown)}
+                  className={`${inputCls} flex items-center gap-2 min-w-[180px] justify-between`}
+                  style={{ borderColor: "#10b981", borderWidth: "2px", fontWeight: "600" }}
+                >
+                  <span className="text-sm">
+                    {filterNegocio
+                      ? emprendedores.find((e) => e.id === filterNegocio)?.displayName || "Negocio"
+                      : "Todos los negocios"}
+                  </span>
+                  <span className="material-icons-round text-green-500 text-[18px]">
+                    {showNegocioDropdown ? "expand_less" : "expand_more"}
+                  </span>
+                </button>
+
+                {showNegocioDropdown && (
+                  <div className="absolute right-0 top-full mt-2 w-full min-w-[200px] bg-white rounded-xl shadow-xl border-2 border-green-500 z-50 max-h-[300px] overflow-y-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterNegocio("");
+                        setShowNegocioDropdown(false);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm hover:bg-green-50 transition-colors border-b border-gray-100"
+                    >
+                      🏪 Todos los negocios
+                    </button>
+                    {emprendedores.map((emp) => (
+                      <button
+                        key={emp.id}
+                        type="button"
+                        onClick={() => {
+                          setFilterNegocio(emp.id);
+                          setShowNegocioDropdown(false);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm hover:bg-green-50 transition-colors border-b border-gray-100 last:border-b-0"
+                      >
+                        {emp.displayName || "Negocio"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -333,7 +382,7 @@ const router = useRouter();
                     : "bg-white text-black border-2 border-blue-500 hover:shadow-md"
                 }`}
               >
-                � Todas
+                🎓 Todas
               </button>
               {categorias.map((cat, idx) => {
                 return (
@@ -349,40 +398,6 @@ const router = useRouter();
                   >
                     {cat.icono && <span className="mr-1">✨</span>}
                     {cat.nombre}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {emprendedores.length > 0 && (
-          <div className="mb-6 overflow-x-auto pb-2">
-            <div className="flex gap-2 min-w-max">
-              <button
-                type="button"
-                onClick={() => setFilterNegocio("")}
-                className={`px-4 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all shadow-md hover:shadow-lg ${
-                  !filterNegocio
-                    ? "bg-green-500 text-white border-2 border-green-500 scale-105"
-                    : "bg-white text-black border-2 border-green-500 hover:shadow-md"
-                }`}
-              >
-                🏪 Todos los negocios
-              </button>
-              {emprendedores.map((emp) => {
-                return (
-                  <button
-                    key={emp.id}
-                    type="button"
-                    onClick={() => setFilterNegocio(emp.id)}
-                    className={`px-4 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all shadow-md hover:shadow-lg ${
-                      filterNegocio === emp.id
-                        ? "bg-green-500 text-white border-2 border-green-500 scale-105"
-                        : "bg-white text-black border-2 border-green-500"
-                    }`}
-                  >
-                    {emp.displayName || "Negocio"}
                   </button>
                 );
               })}
