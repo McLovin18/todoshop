@@ -99,7 +99,7 @@ export default function LoginPage() {
           return;
         }
         if (data?.role === "emprendedor") {
-          router.push("/emprendedor/inventario");
+          router.push("/emprendedor");
           return;
         }
         throw new Error("Solo el administrador o el emprendedor puede iniciar sesión en esta tienda.");

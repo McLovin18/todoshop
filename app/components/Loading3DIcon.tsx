@@ -1,113 +1,131 @@
 "use client";
-
+ 
 import React from "react";
-
+ 
 const loaderStyles = `
-  @keyframes bl-spin { to { transform: rotate(360deg); } }
-  @keyframes bl-bounce { 0%,100%{transform:translateY(0)} 33%{transform:translateY(-6px)} }
-  @keyframes bl-shimmer { 0%,100%{opacity:0.7} 50%{opacity:1} }
-  @keyframes bl-fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-
-  .bl-wrap {
+  @keyframes cl-fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes cl-fill {
+    0%   { opacity: 0.12; transform: scaleY(0.4); }
+    35%  { opacity: 1;    transform: scaleY(1); }
+    100% { opacity: 0.12; transform: scaleY(0.4); }
+  }
+  @keyframes cl-pulseDot { 0%,100%{opacity:0.3} 50%{opacity:1} }
+  @keyframes cl-sweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(220%); }
+  }
+ 
+  .cl-wrap {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 40px 24px;
-    animation: bl-fadeIn 0.4s ease forwards;
-    select-none: none;
+    background: #0B0E14;
+    animation: cl-fadeIn 0.4s ease forwards;
   }
-
-  .bl-rings {
+ 
+  .cl-grid {
     position: relative;
-    width: 100px;
-    height: 100px;
+    display: grid;
+    grid-template-columns: repeat(6, 10px);
+    gap: 6px;
+    width: fit-content;
+    overflow: hidden;
   }
-
-  .bl-ring {
+ 
+  .cl-cell {
+    width: 10px;
+    height: 34px;
+    border-radius: 2px;
+    background: #5B8DEF;
+    transform-origin: bottom;
+    animation: cl-fill 1.6s ease-in-out infinite;
+  }
+ 
+  .cl-cell:nth-child(6n+2),
+  .cl-cell:nth-child(6n+5) {
+    background: #FFB13C;
+  }
+ 
+  .cl-cell:nth-child(1) { animation-delay: 0s; }
+  .cl-cell:nth-child(2) { animation-delay: 0.08s; }
+  .cl-cell:nth-child(3) { animation-delay: 0.16s; }
+  .cl-cell:nth-child(4) { animation-delay: 0.24s; }
+  .cl-cell:nth-child(5) { animation-delay: 0.32s; }
+  .cl-cell:nth-child(6) { animation-delay: 0.4s; }
+  .cl-cell:nth-child(7) { animation-delay: 0.08s; }
+  .cl-cell:nth-child(8) { animation-delay: 0.16s; }
+  .cl-cell:nth-child(9) { animation-delay: 0.24s; }
+  .cl-cell:nth-child(10) { animation-delay: 0.32s; }
+  .cl-cell:nth-child(11) { animation-delay: 0.4s; }
+  .cl-cell:nth-child(12) { animation-delay: 0.48s; }
+ 
+  .cl-sweep {
     position: absolute;
     inset: 0;
-    border-radius: 50%;
-    border: 5px solid transparent;
-    animation: bl-spin linear infinite;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    width: 40%;
+    animation: cl-sweep 2.2s ease-in-out infinite;
+    pointer-events: none;
   }
-
-  .bl-r1 { border-top-color: #FF6B6B; border-right-color: #FF6B6B; animation-duration: 1.2s; }
-  .bl-r2 { inset: 8px;  border-top-color: #FF9F43; border-right-color: #FF9F43; animation-duration: 1.5s; }
-  .bl-r3 { inset: 16px; border-top-color: #FECA57; border-right-color: #FECA57; animation-duration: 1.8s; }
-  .bl-r4 { inset: 24px; border-top-color: #48DBFB; border-right-color: #48DBFB; animation-duration: 2.1s; animation-direction: reverse; }
-  .bl-r5 { inset: 32px; border-top-color: #A29BFE; border-right-color: #A29BFE; animation-duration: 1.4s; }
-
-  .bl-center {
-    position: absolute;
-    inset: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #FFD6E0, #C7ECEE);
+ 
+  .cl-label-row {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    animation: bl-shimmer 2s ease infinite;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 22px;
   }
-
-  .bl-dots {
-    display: flex;
-    gap: 7px;
-    margin-top: 18px;
-  }
-
-  .bl-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    animation: bl-bounce 1.2s ease infinite;
-  }
-
-  .bl-dot:nth-child(1) { background: #FF6B6B; animation-delay: 0s; }
-  .bl-dot:nth-child(2) { background: #FECA57; animation-delay: 0.2s; }
-  .bl-dot:nth-child(3) { background: #48DBFB; animation-delay: 0.4s; }
-
-  .bl-text {
-    margin-top: 16px;
-    font-size: 11px;
+ 
+  .cl-brand {
+    font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.35em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: #888;
-    text-align: center;
+    color: #E4E7EC;
   }
-
-  .bl-sub {
-    margin-top: 4px;
-    font-size: 11px;
-    color: #aaa;
-    letter-spacing: 0.08em;
-    animation: bl-shimmer 2.5s ease infinite;
+ 
+  .cl-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #5B8DEF;
+    animation: cl-pulseDot 1.2s ease infinite;
+  }
+ 
+  .cl-sub {
+    margin-top: 6px;
+    font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: #6B7280;
+  }
+ 
+  .cl-sub span {
+    color: #FFB13C;
   }
 `;
-
+ 
 export function Loading3DIcon() {
   return (
     <>
       <style>{loaderStyles}</style>
-      <div className="bl-wrap">
-        <div className="bl-rings" aria-label="Cargando...">
-          <div className="bl-ring bl-r1" />
-          <div className="bl-ring bl-r2" />
-          <div className="bl-ring bl-r3" />
-          <div className="bl-ring bl-r4" />
-          <div className="bl-ring bl-r5" />
-          <div className="bl-center">🌈</div>
+      <div className="cl-wrap">
+        <div className="cl-grid" aria-label="Cargando...">
+          <div className="cl-sweep" aria-hidden="true" />
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div className="cl-cell" key={i} />
+          ))}
         </div>
-
-        <div className="bl-dots" aria-hidden="true">
-          <div className="bl-dot" />
-          <div className="bl-dot" />
-          <div className="bl-dot" />
+ 
+        <div className="cl-label-row">
+          <span className="cl-brand">todoShop</span>
+          <span className="cl-dot" aria-hidden="true" />
         </div>
-
-        <p className="bl-text">Vistiendo a tu pequeño</p>
-        <p className="bl-sub">Cargando ropa para bebé...</p>
+        <p className="cl-sub">
+          Arreglando espacio <span>para tus compras</span>...
+        </p>
       </div>
     </>
   );

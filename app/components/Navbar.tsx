@@ -273,7 +273,7 @@ export const Navbar = () => {
               className="flex items-center gap-2 shrink-0 text-black"
             >
               <span className="font-heading tracking-tight whitespace-nowrap text-lg sm:text-2xl font-black">
-                � todoShop
+                TodoShop
               </span>
             </a>
 
