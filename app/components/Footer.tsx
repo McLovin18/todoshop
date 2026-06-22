@@ -34,24 +34,7 @@ const Footer: React.FC = () => {
         <div className={styles.ftGlowLeft} />
         <div className={styles.ftGlowRight} />
 
-        {/* Main row */}
-        <div className={styles.ftMain}>
-          <div className="flex flex-col gap-8 items-center">
-
-            {/* Redes sociales */}
-            <div className="w-full flex justify-center">
-              <ul className={styles.ftSocials}>
-                {socialLinks.map(({ href, label, Icon }) => (
-                  <li key={label}>
-                    <a href={href} className={styles.ftSocialsLink} target="_blank" rel="noreferrer" title={label}>
-                      <Icon />
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
+ 
 
         {/* Divider */}
         <div className={styles.ftDivider} />
