@@ -29,6 +29,7 @@ const router = useRouter();
     searchParams?.get("sub") ||
     ""
   ).trim();
+  const emprendedorFromUrl = (searchParams?.get("emprendedor") || "").trim();
   const subsubcategoriaFromUrl = (
     searchParams?.get("subsubcat") ||
     searchParams?.get("subsubcategory") ||
@@ -45,6 +46,12 @@ const router = useRouter();
     setFilterSub(subcategoriaFromUrl);
     setFilterSubsub(subsubcategoriaFromUrl);
   }, [categoriaFromUrl, subcategoriaFromUrl, subsubcategoriaFromUrl]);
+
+  useEffect(() => {
+    if (emprendedorFromUrl) {
+      setFilterNegocio(emprendedorFromUrl);
+    }
+  }, [emprendedorFromUrl]);
 
   const categoria = filterCat;
   const subcategoria = filterSub;
@@ -328,7 +335,7 @@ const router = useRouter();
                   type="button"
                   onClick={() => setShowNegocioDropdown(!showNegocioDropdown)}
                   className="flex items-center gap-2 min-w-[180px] justify-between px-4 py-2 rounded-xl border-2 font-semibold text-sm transition-all shadow-md hover:shadow-lg"
-                  style={{ borderColor: "#10b981", backgroundColor: filterNegocio ? "#10b981" : "white", color: filterNegocio ? "white" : "#10b981" }}
+                  style={{ borderColor: "#716e6e", backgroundColor: filterNegocio ? "#716e6e" : "white", color: filterNegocio ? "white" : "#716e6e" }}
                 >
                   <span className="text-sm">
                     {filterNegocio
@@ -341,14 +348,14 @@ const router = useRouter();
                 </button>
 
                 {showNegocioDropdown && (
-                  <div className="absolute right-0 top-full mt-2 w-full min-w-[200px] rounded-xl shadow-xl border-2 border-green-500 z-50 max-h-[350px] overflow-y-auto" style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)" }}>
+                  <div className="absolute right-0 top-full mt-2 w-full min-w-[200px] rounded-xl shadow-xl border-2 border-slate-700 z-50 max-h-[350px] overflow-y-auto" style={{ background: "linear-gradient(135deg, #e4ede9ff 0%, #e4ede9ff 100%)" }}>
                     <button
                       type="button"
                       onClick={() => {
                         setFilterNegocio("");
                         setShowNegocioDropdown(false);
                       }}
-                      className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-green-500 hover:text-white transition-all border-b border-green-200"
+                      className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-700 hover:text-white transition-all border-b border-slate-700"
                     >
                       🏪 Todos los negocios
                     </button>
@@ -360,7 +367,7 @@ const router = useRouter();
                           setFilterNegocio(emp.uid);
                           setShowNegocioDropdown(false);
                         }}
-                        className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-green-500 hover:text-white transition-all border-b border-green-200 last:border-b-0"
+                        className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-700 hover:text-white transition-all border-b border-slate-700 last:border-b-0"
                       >
                         {emp.displayName || "Negocio"}
                       </button>
@@ -380,8 +387,8 @@ const router = useRouter();
                 onClick={selectTodas}
                 className={`px-4 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all shadow-md hover:shadow-lg ${
                   !categoria
-                    ? "bg-blue-500 text-white border-2 border-blue-500 scale-105"
-                    : "bg-white text-black border-2 border-blue-500 hover:shadow-md"
+                    ? "bg-slate-700 text-white border-2 border-slate-700 scale-105"
+                    : "bg-white text-black border-2 border-slate-700 hover:shadow-md"
                 }`}
               >
                 🎓 Todas
@@ -394,8 +401,8 @@ const router = useRouter();
                     onClick={() => selectCategoria(cat.id)}
                     className={`px-4 py-2 rounded-full whitespace-nowrap font-bold text-sm transition-all shadow-md hover:shadow-lg ${
                       sameCategoryId(categoria, cat.id)
-                        ? "bg-blue-500 text-white border-2 border-blue-500 scale-105"
-                        : "bg-white text-black border-2 border-blue-500"
+                        ? "bg-slate-700 text-white border-2 border-slate-800 scale-105"
+                        : "bg-white text-black border-2 border-slate-700"
                     }`}
                   >
                     {cat.icono && <span className="mr-1">✨</span>}
@@ -460,7 +467,6 @@ const router = useRouter();
               
                   showFav={isAuthenticated}
                   onClick={() => {}}
-                  onAddCart={() => {}}
                   onEye={() => {}}
                   isCompact={false}
                 />

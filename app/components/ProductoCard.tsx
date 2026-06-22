@@ -224,7 +224,7 @@ const cardStyles = `
     font-family: 'Barlow', sans-serif;
     font-weight: 700;
     font-size: 14px;
-    color: #7C3AED;
+    color: black;
     letter-spacing: 0.02em;
   }
 
@@ -263,8 +263,8 @@ const cardStyles = `
     gap: 6px;
     height: 36px;
     border: none;
-    background: #C4B5FD;
-    color: #6D28D9;
+    background: #7C8DA5;
+    color: #e8e5eeff;
     font-family: 'Barlow', sans-serif;
     font-size: 12px;
     font-weight: 700;
@@ -277,7 +277,7 @@ const cardStyles = `
   }
 
   .pc-btn-cart:hover:not(:disabled) {
-    background: #DDD6FE;
+    background: #828182ff;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(196, 181, 253, 0.4);
   }
@@ -404,7 +404,10 @@ function ProductoCard({
   const handleCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (sinStock) return;
+    if (sinStock) {
+      showToast("Producto sin stock", "error");
+      return;
+    }
 
     if (hasVariations && variationAttributeIds.length > 0) {
       showToast("Selecciona las opciones en el detalle del producto", "info");
@@ -425,7 +428,7 @@ function ProductoCard({
 
     if (inCart) {
       removeCarrito(producto.id);
-      showToast("Eliminado del carrito", "info");
+      showToast("Quitando producto del carrito", "info");
     } else {
       addCarrito({
         ...producto,

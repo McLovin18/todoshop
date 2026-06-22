@@ -9,6 +9,7 @@ type Emprendedor = {
   tipoEmprendimiento: string;
   status?: string;
   createdAt?: number;
+  destacado?: boolean;
 };
 
 const tipos = [
@@ -48,6 +49,25 @@ export default function AdminEmprendedoresPage() {
     }
     setLoading(false);
   }
+
+  const toggleDestacado = async (uid: string, destacado: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/emprendedores/${uid}/destacado`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destacado }),
+      });
+      if (!res.ok) {
+        throw new Error("No se pudo actualizar el estado destacado");
+      }
+      // Actualizar el estado local
+      setEmprendedores(emprendedores.map(emp => 
+        emp.uid === uid ? { ...emp, destacado } : emp
+      ));
+    } catch (err: any) {
+      alert(err.message || "Error al actualizar el estado destacado");
+    }
+  };
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -177,6 +197,7 @@ export default function AdminEmprendedoresPage() {
                     <th className="px-4 py-3 font-semibold">Email</th>
                     <th className="px-4 py-3 font-semibold">Tipo</th>
                     <th className="px-4 py-3 font-semibold">Estado</th>
+                    <th className="px-4 py-3 font-semibold">Destacado</th>
                     <th className="px-4 py-3 font-semibold">Creado</th>
                   </tr>
                 </thead>
@@ -187,6 +208,14 @@ export default function AdminEmprendedoresPage() {
                       <td className="px-4 py-4">{item.email}</td>
                       <td className="px-4 py-4">{tipos.find((tipo) => tipo.value === item.tipoEmprendimiento)?.label || item.tipoEmprendimiento}</td>
                       <td className="px-4 py-4 capitalize">{item.status || "pending"}</td>
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={item.destacado || false}
+                          onChange={(e) => toggleDestacado(item.uid, e.target.checked)}
+                          className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </td>
                       <td className="px-4 py-4">{item.createdAt ? new Date(item.createdAt).toLocaleDateString("es-EC") : "-"}</td>
                     </tr>
                   ))}

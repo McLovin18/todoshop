@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { getSnapshotPricing } from "../lib/pricing";
 import { useUser } from "../context/UserContext";
 import { obtenerAtributos } from "../lib/atributos-db";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 function resolveCartItemKey(item: any) {
   if (!item) return "";
@@ -55,6 +57,7 @@ export default function CartPage() {
   const router = useRouter();
   const { isLogged } = useUser();
   const [atributos, setAtributos] = useState<any[]>([]);
+  const [emprendedoresMap, setEmprendedoresMap] = useState<Map<string, any>>(new Map());
 
   const calcularPrecioData = (p: any) => {
     const { basePrice, discount, hasDiscount, fakeOldPrice, finalPrice } = getSnapshotPricing(p);
@@ -70,6 +73,24 @@ export default function CartPage() {
   loadAtributos();
 }, []);
 
+  useEffect(() => {
+    async function loadEmprendedores() {
+      try {
+        const emprendedoresSnapshot = await getDocs(collection(db, "emprendedores"));
+        const map = new Map();
+        emprendedoresSnapshot.forEach(doc => {
+          const data = doc.data();
+          map.set(data.uid, data);
+        });
+        setEmprendedoresMap(map);
+      } catch (error) {
+        console.error("Error al cargar emprendedores:", error);
+      }
+    }
+
+    loadEmprendedores();
+  }, []);
+
 
 
 
@@ -80,14 +101,57 @@ export default function CartPage() {
   
   const total = subtotal;
 
-  const generateWhatsAppMessage = async (): Promise<string> => {
+  // Agrupar productos por emprendedor
+  const groupedByEmprendedor = carrito.reduce((groups: any, product: any) => {
+    const emprendedorId = product.emprendedorId || 'unknown';
+    
+    // Obtener nombre del emprendedor desde el producto o desde el mapa
+    let emprendedorNombre = product.emprendedorNombre || product.emprendimientoNombre || product.tiendaNombre;
+    if (!emprendedorNombre && emprendedorId !== 'unknown') {
+      const emprendedorData = emprendedoresMap.get(emprendedorId);
+      if (emprendedorData) {
+        emprendedorNombre = emprendedorData.displayName || 'Emprendedor desconocido';
+      }
+    }
+    
+    emprendedorNombre = emprendedorNombre || 'Emprendedor desconocido';
+    
+    if (!groups[emprendedorId]) {
+      groups[emprendedorId] = {
+        emprendedorId,
+        emprendedorNombre,
+        productos: [],
+        subtotal: 0
+      };
+    }
+    
+    groups[emprendedorId].productos.push(product);
+    const { finalPrice } = calcularPrecioData(product);
+    groups[emprendedorId].subtotal += finalPrice * (product.cantidad || 1);
+    
+    return groups;
+  }, {});
+
+  // Convertir a array y ordenar por número de productos (más productos primero)
+  const sortedGroups = Object.values(groupedByEmprendedor).sort((a: any, b: any) => b.productos.length - a.productos.length);
+
+  const generateWhatsAppMessage = async (emprendedorId: string): Promise<string> => {
     const bodegas = await obtenerBodegas();
     const bodegasMap = new Map(
       bodegas.map((b) => [b.id, b.tiempoEntrega])
     );
 
-    const productosText = carrito
-      .map((p) => {
+    // Obtener solo el grupo del emprendedor específico
+    const group = groupedByEmprendedor[emprendedorId];
+    if (!group) return "";
+
+    let message = "Hola, me gustaría realizar una compra:\n\n";
+
+    message += `🏪 ${group.emprendedorNombre}\n`;
+    message += `━━━━━━━━━━━━━━━\n`;
+
+    const productosText = group.productos
+      .map((p: any) => {
         const tiempoEntrega =
           bodegasMap.get(p.bodegaId || "technothings") || 72;
 
@@ -147,26 +211,43 @@ export default function CartPage() {
       })
       .join("\n\n");
 
-    const headerMsg = "Hola, me gustaría realizar una compra:";
-    const footerMsg =
-      "Quiero confirmar disponibilidad y conocer más detalles. Gracias!";
-
-    const message = `${headerMsg}
-
-  ${productosText}
-
-  ━━━━━━━━━━━━━━━
-  TOTAL: $${subtotal.toFixed(2)}
-  ━━━━━━━━━━━━━━━
-
-  ${footerMsg}`;
+    message += productosText;
+    message += `\n💰 Subtotal: $${group.subtotal.toFixed(2)}\n\n`;
+    message += `━━━━━━━━━━━━━━━━\n`;
+    message += `TOTAL: $${group.subtotal.toFixed(2)}\n`;
+    message += `━━━━━━━━━━━━━━━━\n\n`;
+    message += `Quiero confirmar disponibilidad y conocer más detalles. Gracias!`;
 
     return encodeURIComponent(message);
   };
 
-  const handleGenerarOrden = async () => {
-    const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "593996326003";
-    const message = await generateWhatsAppMessage();
+  const handleGenerarOrden = async (emprendedorId: string) => {
+    // Obtener el número de teléfono del emprendedor específico
+    const group = groupedByEmprendedor[emprendedorId];
+    if (!group) return;
+
+    let emprendedorTelefono = group?.productos?.[0]?.emprendedorTelefono || group?.productos?.[0]?.telefono;
+    
+    // Si no hay teléfono en el producto, buscar en la colección de emprendedores
+    if (!emprendedorTelefono && group?.emprendedorId) {
+      try {
+        const emprendedorQuery = query(
+          collection(db, "emprendedores"),
+          where("uid", "==", group.emprendedorId)
+        );
+        const emprendedorSnapshot = await getDocs(emprendedorQuery);
+        if (!emprendedorSnapshot.empty) {
+          const emprendedorData = emprendedorSnapshot.docs[0].data();
+          emprendedorTelefono = emprendedorData.telefono;
+        }
+      } catch (error) {
+        console.error("Error al obtener teléfono del emprendedor:", error);
+      }
+    }
+    
+    // Si no hay teléfono del emprendedor, usar el número por defecto
+    const whatsappNumber = emprendedorTelefono || process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "593996326003";
+    const message = await generateWhatsAppMessage(emprendedorId);
     window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
   };
 
@@ -237,151 +318,147 @@ export default function CartPage() {
           {carrito.length === 0 ? (
             <EmptyCart />
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-              <div className="lg:col-span-2 space-y-3">
-                {carrito.map((p) => {
-                  const itemKey = resolveCartItemKey(p);
-                  const { basePrice, discount, hasDiscount, fakeOldPrice, finalPrice } = calcularPrecioData(p);
-                  const lineTotal = finalPrice * (p.cantidad || 1);
-                  const availableStock = resolveAvailableStock(p);
+            <div className="space-y-10">
+              {sortedGroups.map((group: any) => (
+                <div key={group.emprendedorId} className="bg-white dark:bg-slate-800/70 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden py-4">
+                  {/* Header del emprendedor */}
+                  <div className="bg-gradient-to-r from-slate-400 to-slate-500 px-4 py-3">
+                    <h2 className="text-white font-bold text-lg">
+                      🏪 {group.emprendedorNombre}
+                    </h2>
+                    <p className="text-green-100 text-sm">
+                      {group.productos.length} {group.productos.length === 1 ? 'producto' : 'productos'}
+                    </p>
+                  </div>
 
-                  return (
-                    <div
-                      key={itemKey}
-                      className="bg-white dark:bg-slate-800/70 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-4 flex gap-3 sm:gap-4 items-start"
-                    >
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 flex items-center justify-center">
-                        <img
-                          src={p.imagenes?.[0] || "/no-image.png"}
-                          alt={p.nombre}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
+                  {/* Lista de productos del emprendedor */}
+                  <div className="p-4 space-y-3">
+                    {group.productos.map((p: any) => {
+                      const itemKey = resolveCartItemKey(p);
+                      const { basePrice, discount, hasDiscount, fakeOldPrice, finalPrice } = calcularPrecioData(p);
+                      const lineTotal = finalPrice * (p.cantidad || 1);
+                      const availableStock = resolveAvailableStock(p);
 
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm sm:text-base leading-tight line-clamp-2">
-                          {p.nombre}
-                        </p>
-                        {p.selectedTalla && p.selectedColor && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            Talla {p.selectedTalla} · Color {p.selectedColor}
-                          </p>
-                        )}
-                        {p.selectedVariations && p.variationAttributeIds && p.variationAttributeIds.length > 0 && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            {p.variationAttributeIds.map((attrId: string) => {
-                              const atributo = atributos.find((a: any) => a.id === attrId);
-                              const attrName = atributo?.nombre || "Opción";
-                              const value = p.selectedVariations?.[attrId];
-                              return value
-                                ? `${attrName}: ${value}`
-                                : null;
-                            }).filter(Boolean).join(" · ")}
-                          </p>
-                        )}
+                      return (
+                        <div
+                          key={itemKey}
+                          className="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 p-3 flex gap-3 sm:gap-4 items-start"
+                        >
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 flex items-center justify-center">
+                            <img
+                              src={p.imagenes?.[0] || "/no-image.png"}
+                              alt={p.nombre}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
 
-                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          {hasDiscount && (
-                            <span className="text-xs text-slate-400 line-through">
-                              ${fakeOldPrice?.toFixed(2)}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm sm:text-base leading-tight line-clamp-2">
+                              {p.nombre}
+                            </p>
+                            {p.selectedTalla && p.selectedColor && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Talla {p.selectedTalla} · Color {p.selectedColor}
+                              </p>
+                            )}
+                            {p.selectedVariations && p.variationAttributeIds && p.variationAttributeIds.length > 0 && (
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {p.variationAttributeIds.map((attrId: string) => {
+                                  const atributo = atributos.find((a: any) => a.id === attrId);
+                                  const attrName = atributo?.nombre || "Opción";
+                                  const value = p.selectedVariations?.[attrId];
+                                  return value
+                                    ? `${attrName}: ${value}`
+                                    : null;
+                                }).filter(Boolean).join(" · ")}
+                              </p>
+                            )}
+
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              {hasDiscount && (
+                                <span className="text-xs text-slate-400 line-through">
+                                  ${fakeOldPrice?.toFixed(2)}
+                                </span>
+                              )}
+                              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                                ${finalPrice.toFixed(2)}
+                              </span>
+                              {hasDiscount && (
+                                <span className="text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full">
+                                  -{discount}%
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
+                                <button
+                                  onClick={() => handleCantidad(itemKey, (p.cantidad || 1) - 1)}
+                                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300 font-bold text-base"
+                                >
+                                  -
+                                </button>
+                                <span className="w-7 text-center text-sm font-semibold">
+                                  {p.cantidad || 1}
+                                </span>
+                                <button
+                                  onClick={() => handleCantidad(itemKey, (p.cantidad || 1) + 1)}
+                                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300 font-bold text-base"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <span className="text-xs text-slate-400">
+                                {availableStock} en stock
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end justify-between h-full gap-3 shrink-0">
+                            <span className="font-bold text-sm sm:text-base">
+                              ${lineTotal.toFixed(2)}
                             </span>
-                          )}
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">
-                            ${finalPrice.toFixed(2)}
-                          </span>
-                          {hasDiscount && (
-                            <span className="text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full">
-                              -{discount}%
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 rounded-lg p-0.5">
                             <button
-                              onClick={() => handleCantidad(itemKey, (p.cantidad || 1) - 1)}
-                              className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300 font-bold text-base"
+                              onClick={() => removeCarrito(itemKey)}
+                              className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                              title="Eliminar"
                             >
-                              -
-                            </button>
-                            <span className="w-7 text-center text-sm font-semibold">
-                              {p.cantidad || 1}
-                            </span>
-                            <button
-                              onClick={() => handleCantidad(itemKey, (p.cantidad || 1) + 1)}
-                              className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300 font-bold text-base"
-                            >
-                              +
+                              <span className="material-icons-round text-xl">delete_outline</span>
                             </button>
                           </div>
-                          <span className="text-xs text-slate-400">
-                            {availableStock} en stock
-                          </span>
                         </div>
-                      </div>
+                      );
+                    })}
+                  </div>
 
-                      <div className="flex flex-col items-end justify-between h-full gap-3 shrink-0">
-                        <span className="font-bold text-sm sm:text-base">
-                          ${lineTotal.toFixed(2)}
-                        </span>
-                        <button
-                          onClick={() => removeCarrito(itemKey)}
-                          className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                          title="Eliminar"
-                        >
-                          <span className="material-icons-round text-xl">delete_outline</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                <a
-                  href="/products-by-category"
-                  className="inline-flex items-center gap-1.5 text-sm text-slate-900 dark:text-white hover:underline mt-1"
-                >
-                  <span className="material-icons-round text-base">arrow_back</span>
-                  Continuar comprando
-                </a>
-              </div>
-
-              <div className="lg:col-span-1">
-                <div className="bg-white dark:bg-[#1e0a3c] rounded-2xl border border-slate-100 dark:border-rgba(224, 161, 26, 0.1) shadow-md p-5 md:sticky md:top-20 space-y-4">
-                  <div>
-                    <p className="text-base font-bold mb-3">Resumen del pedido</p>
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
-                        <span>
-                          Subtotal ({carrito.reduce((n, p) => n + (p.cantidad || 1), 0)} items)
-                        </span>
-                        <span>${subtotal.toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <div className="border-t border-slate-100 dark:border-rgba(224, 161, 26, 0.1) mt-3 pt-3 flex justify-between font-bold text-base">
-                      <span>Total</span>
-                      <span className="text-slate-900 dark:text-white">
-                        ${total.toFixed(2)}
+                  {/* Resumen de pago del emprendedor */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-3 border-t border-slate-100 dark:border-slate-700">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                        Subtotal ({group.productos.reduce((n: number, p: any) => n + (p.cantidad || 1), 0)} items)
+                      </span>
+                      <span className="text-lg font-bold text-slate-900 dark:text-white">
+                        ${group.subtotal.toFixed(2)}
                       </span>
                     </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-                      Contacto rápido
-                    </p>
                     <button
-                      onClick={handleGenerarOrden}
-                      className="w-full flex items-center text-center justify-center gap-2 py-3.5 px-6 bg-white border border-slate-300 text-slate-900 hover:border-black/60 hover:shadow-md font-bold text-sm rounded-xl transition-colors shadow-md"
-                      title="Enviar pedido por WhatsApp"
+                      onClick={() => handleGenerarOrden(group.emprendedorId)}
+                      className="mx-auto flex items-center justify-center gap-2 py-3 px-6 bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:from-slate-900 font-bold text-sm rounded-xl transition-all shadow-md"
+                      title="Enviar pedido a este emprendedor por WhatsApp"
                     >
-                      Generar orden
+                      <span>Generar orden para {group.emprendedorNombre}</span>
                     </button>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-2">
-                      Te enviaremos el resumen del pedido por WhatsApp
-                    </p>
                   </div>
                 </div>
-              </div>
+              ))}
+
+              <a
+                href="/productos"
+                className="inline-flex items-center gap-1.5 text-sm text-slate-900 dark:text-white hover:underline mt-1"
+              >
+                <span className="material-icons-round text-base">arrow_back</span>
+                Continuar comprando
+              </a>
             </div>
           )}
         </main>

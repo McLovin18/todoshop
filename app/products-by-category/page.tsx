@@ -71,6 +71,7 @@ export default function ProductsByCategoryPage() {
   const categoriaFromUrl = (searchParams?.get("cat") || searchParams?.get("category") || "").trim();
   const subcategoriaFromUrl = (searchParams?.get("subcat") || searchParams?.get("subcategory") || searchParams?.get("sub") || "").trim();
   const subsubcategoriaFromUrl = (searchParams?.get("subsubcat") || searchParams?.get("subsubcategory") || searchParams?.get("subsub") || "").trim();
+  const emprendedorFromUrl = (searchParams?.get("emprendedor") || "").trim();
 
   // Estado local: responde al click al instante (router.push a veces no actualiza searchParams en la misma ruta)
   const [filterCat, setFilterCat] = useState(categoriaFromUrl);
@@ -82,6 +83,12 @@ export default function ProductsByCategoryPage() {
     setFilterSub(subcategoriaFromUrl);
     setFilterSubsub(subsubcategoriaFromUrl);
   }, [categoriaFromUrl, subcategoriaFromUrl, subsubcategoriaFromUrl]);
+
+  useEffect(() => {
+    if (emprendedorFromUrl) {
+      setFilterNegocio(emprendedorFromUrl);
+    }
+  }, [emprendedorFromUrl]);
 
   const categoriaId = filterCat;
   const subcategoriaId = filterSub;
@@ -104,6 +111,9 @@ export default function ProductsByCategoryPage() {
   const [showPrecio, setShowPrecio] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [categorias, setCategorias] = useState<any[]>([]);
+  const [emprendedores, setEmprendedores] = useState<any[]>([]);
+  const [filterNegocio, setFilterNegocio] = useState("");
+  const [showNegocioDropdown, setShowNegocioDropdown] = useState(false);
   const categoriesScrollRef = useRef<HTMLDivElement>(null);
 
   // 1. Control de Montaje - Inicializa filtros desde URL
@@ -207,6 +217,21 @@ export default function ProductsByCategoryPage() {
     return () => unsubscribe();
   }, []);
 
+  // 2.6. Cargar emprendedores
+  useEffect(() => {
+    const emprendedoresRef = collection(db, "emprendedores");
+    const unsubscribe = onSnapshot(query(emprendedoresRef), (snapshot) => {
+      const allEmprendedores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+      // Filtrar solo emprendedores de venta de productos (no comida)
+      const productosEmprendedores = allEmprendedores.filter((emp: any) => {
+        const tipo = (emp.tipoEmprendimiento || "").toLowerCase();
+        return !tipo.includes("comida") && !tipo.includes("alimento") && !tipo.includes("food");
+      });
+      setEmprendedores(productosEmprendedores);
+    });
+    return () => unsubscribe();
+  }, []);
+
   // 3. Filtrado y orden (Memoizado)
   const productosFiltrados = useMemo(() => {
     // Usar URL params primero, luego estado local como fallback
@@ -218,6 +243,11 @@ export default function ProductsByCategoryPage() {
     
     const filtered = productos
       .filter((p: any) => {
+        // Filtro por negocio
+        if (filterNegocio && p.emprendedorId !== filterNegocio) {
+          return false;
+        }
+
         // Filtrado estricto por ID
         if (categoriaId && categorias.length > 0) {
           if (!productMatchesCategoria(p, categoriaId, categorias)) return false;
@@ -268,7 +298,7 @@ export default function ProductsByCategoryPage() {
         return (new Date(b.createdAt).getTime() || 0) - (new Date(a.createdAt).getTime() || 0);
       });
     return filtered;
-  }, [productos, categoriaId, subcategoriaId, subsubcategoriaId, categorias, search, precioMin, precioMax, orden, urlMinPrice, urlMaxPrice]);
+  }, [productos, categoriaId, subcategoriaId, subsubcategoriaId, categorias, search, precioMin, precioMax, orden, urlMinPrice, urlMaxPrice, filterNegocio]);
 
   const hasFilters = !!(search || precioMin || precioMax || orden !== "newest");
 
@@ -328,7 +358,7 @@ export default function ProductsByCategoryPage() {
     "px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-#e8c862 transition-all";
 
   return (
-    <div className="min-h-screen flex flex-col bg-black dark:bg-black text-slate-900 dark:text-white transition-colors">
+    <div className="min-h-screen flex flex-col text-slate-900 dark:text-white transition-colors" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)" }}>
         <BottomBarPublic />
 
 
@@ -388,42 +418,56 @@ export default function ProductsByCategoryPage() {
               )}
             </div>
 
+            {emprendedores.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowNegocioDropdown(!showNegocioDropdown)}
+                  className="flex items-center gap-2 min-w-[180px] justify-between px-4 py-2 rounded-xl border-2 font-semibold text-sm transition-all shadow-md hover:shadow-lg"
+                  style={{ borderColor: "#716e6e", backgroundColor: filterNegocio ? "#716e6e" : "white", color: filterNegocio ? "white" : "#716e6e" }}
+                >
+                  <span className="text-sm">
+                    {filterNegocio
+                      ? emprendedores.find((e) => e.uid === filterNegocio)?.displayName || "Negocio"
+                      : "Todos los negocios"}
+                  </span>
+                  <span className="material-icons-round text-[18px]">
+                    {showNegocioDropdown ? "expand_less" : "expand_more"}
+                  </span>
+                </button>
+
+                {showNegocioDropdown && (
+                  <div className="absolute right-0 top-full mt-2 w-full min-w-[200px] rounded-xl shadow-xl border-2 border-slate-700 z-50 max-h-[350px] overflow-y-auto" style={{ background: "linear-gradient(135deg, #e4ede9ff 0%, #e4ede9ff 100%)" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFilterNegocio("");
+                        setShowNegocioDropdown(false);
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-700 hover:text-white transition-all border-b border-slate-700"
+                    >
+                      🏪 Todos los negocios
+                    </button>
+                    {emprendedores.map((emp) => (
+                      <button
+                        key={emp.id}
+                        type="button"
+                        onClick={() => {
+                          setFilterNegocio(emp.uid);
+                          setShowNegocioDropdown(false);
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-700 hover:text-white transition-all border-b border-slate-700 last:border-b-0"
+                      >
+                        {emp.displayName || "Negocio"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
-
-        {/* ── Categorías Filter - Scroll Horizontal ────────────── */}
-        {categorias.length > 0 && (
-          <div className="mb-6 overflow-x-auto pb-2" ref={categoriesScrollRef}>
-            <div className="flex gap-2 min-w-max">
-              <button
-                type="button"
-                onClick={selectTodas}
-                className={`px-4 py-2 rounded-full whitespace-nowrap font-medium text-sm transition-all ${
-                  !categoriaId
-                    ? "shadow-sm scale-105 bg-black text-white border border-black"
-                    : "bg-white text-slate-900 border border-slate-300 hover:border-black/60 hover:shadow-sm"
-                }`}
-              >
-                Todas
-              </button>
-              {categorias.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => selectCategoria(cat.id)}
-                  className={`px-4 py-2 rounded-full whitespace-nowrap font-medium text-sm transition-all ${
-                    sameCategoryId(categoriaId, cat.id)
-                      ? "shadow-sm scale-105 bg-black text-white border border-black"
-                      : "bg-white text-slate-900 border border-slate-300 hover:border-black/60 hover:shadow-sm"
-                  }`}
-                >
-                  {cat.icono && <span className="mr-1">🏷️</span>}
-                  {cat.nombre}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Grid de productos o Loading */}
         {(!isMounted || loading) ? (

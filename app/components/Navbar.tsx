@@ -330,9 +330,18 @@ export const Navbar = () => {
 
           {/* Categorías visibles en navbar - centro */}
           <div className="hidden lg:flex items-center gap-2">
+
+            <Link
+              href="/productos"
+              className="px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 whitespace-nowrap bg-gradient-to-r from-slate-400 to-slate-500 hover:from-slate-700 hover:to-slate-800 shadow-md"
+            >
+              🍽️ Productos
+            </Link>
+
+
             <Link
               href="/reservas"
-              className="px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 whitespace-nowrap bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 shadow-md"
+              className="px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 whitespace-nowrap bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-800 hover:to-slate-900 shadow-md"
             >
               🍽️ Reservas
             </Link>

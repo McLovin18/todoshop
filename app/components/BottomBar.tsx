@@ -28,7 +28,7 @@ export default function BottomBar({ role = "admin", tipoEmprendimiento = null }:
   const { carrito } = useUser();
   
   // Determinar si es una página pública
-  const isPublicPage = pathname === "/" || pathname === "/productos" || pathname === "/reservas" || pathname === "/carrito";
+  const isPublicPage = pathname === "/" || pathname === "/productos" || pathname === "/reservas" || pathname === "/cart" || pathname === "/search-results" || pathname === "/login";
   
   // Items dinámicos según tipo de emprendedor
   const emprendedorItems = [

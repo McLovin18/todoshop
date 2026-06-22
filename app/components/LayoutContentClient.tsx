@@ -17,7 +17,7 @@ export default function LayoutContentClient({ children }: { children: React.Reac
   }
   
   // Determinar si es una página pública
-  const isPublicPage = pathname === "/" || pathname === "/productos" || pathname === "/reservas" || pathname === "/carrito";
+  const isPublicPage = pathname === "/" || pathname === "/productos" || pathname === "/reservas" || pathname === "/cart" || pathname === "/search-results" || pathname === "/login";
   
   return (
     <UserProvider>

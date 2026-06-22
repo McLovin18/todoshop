@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import BottomBarPublic from "../components/BottomBarPublic";
 import { loginUser } from "../lib/firebase-auth";
 import { Loading3DIcon } from "../components/Loading3DIcon";
 
@@ -175,7 +174,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white">
-      <BottomBarPublic />
 
       {/* Hero header */}
       <div className="w-full max-w-md mx-auto px-4 pt-10 pb-4 text-center">

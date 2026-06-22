@@ -98,7 +98,7 @@ const router = useRouter();
   useEffect(() => {
     async function fetchEmprendedores() {
       try {
-        const q = query(collection(db, "emprendedores"), where("status", "==", "completed"));
+        const q = query(collection(db, "emprendedores"), where("status", "==", "completed"), where("destacado", "==", true));
         const snapshot = await getDocs(q);
         const emps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setEmprendedores(emps.slice(0, 5));
@@ -342,8 +342,8 @@ const router = useRouter();
             <span className="material-icons-round">new_releases</span>
             Productos Recientes
           </h2>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
-            {productos.slice(0, 6).map((producto, index) => (
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            {productos.slice(0, 8).map((producto, index) => (
               <ProductoCard
                 key={producto.id}
                 producto={producto}
@@ -375,11 +375,19 @@ const router = useRouter();
                   style={{ borderColor: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][index % 5] }}
                 >
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl"
-                      style={{ background: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][index % 5] }}
-                    >
-                      {emprendedor.displayName?.charAt(0).toUpperCase() || "E"}
-                    </div>
+                    {emprendedor.photoURL ? (
+                      <img
+                        src={emprendedor.photoURL}
+                        alt={emprendedor.displayName || "Emprendedor"}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl"
+                        style={{ background: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][index % 5] }}
+                      >
+                        {emprendedor.displayName?.charAt(0).toUpperCase() || "E"}
+                      </div>
+                    )}
                     <div>
                       <h3 className="font-bold text-sm">{emprendedor.displayName || "Emprendedor"}</h3>
                       <p className="text-xs text-slate-600">{emprendedor.tipoEmprendimiento || "General"}</p>
@@ -387,9 +395,13 @@ const router = useRouter();
                   </div>
                   <p className="text-xs text-slate-500 mb-2">{emprendedor.email}</p>
                   <button
-                    onClick={() => router.push(`/reservas?emprendedor=${emprendedor.id}`)}
-                    className="w-full py-2 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90"
-                    style={{ background: "linear-gradient(90deg, #3b82f6 0%, #10b981 100%)" }}
+                    onClick={() => {
+                      const targetPath = emprendedor.tipoEmprendimiento === "comida" 
+                        ? `/reservas?emprendedor=${emprendedor.uid}`
+                        : `/productos?emprendedor=${emprendedor.uid}`;
+                      router.push(targetPath);
+                    }}
+                    className="w-full py-2 rounded-xl text-white font-bold bg-slate-700 text-sm transition-all hover:opacity-90"
                   >
                     Ver Productos
                   </button>

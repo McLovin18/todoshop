@@ -1,5 +1,4 @@
 "use client";
-import BottomBarPublic from "../components/BottomBarPublic";
 import { useUser } from "../context/UserContext";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
@@ -148,10 +147,8 @@ export default function SearchResultsPage() {
   ), [search]);
 
   return (
-    <div className=" min-h-screen flex flex-col bg-black dark:bg-black">
-      <BottomBarPublic/>
-
-      <main className="max-w-350 mx-auto px-3 sm:px-5 py-8 flex-1">
+    <div className="min-h-screen flex flex-col text-slate-900 dark:text-white transition-colors" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)" }}>
+    <main className="max-w-7xl mx-auto w-full px-3 sm:px-5 py-6 sm:py-15 flex-1">
         <div className="mb-6">
           {FilterPanel}
         </div>
@@ -200,12 +197,17 @@ export default function SearchResultsPage() {
               <p className="text-slate-700 dark:text-white/50">No hay resultados</p>
             ) : (
           <>
-              <div className="grid grid-cols-2 gap-2 lg:grid-cols-5 animate-in fade-in duration-700">              {paginatedProducts.map((p: any) => (
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-5 animate-in fade-in duration-700">
+              {paginatedProducts.map((p: any, index: number) => (
                 <ProductoCard
                   key={p.id}
                   producto={p}
+                  index={index}
                   showCart
                   showEye
+              
+                  onClick={() => {}}
+                  onEye={() => {}}
                   isCompact={false}
                 />
               ))}
