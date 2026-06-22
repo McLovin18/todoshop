@@ -305,7 +305,7 @@ const router = useRouter();
       <main className="max-w-7xl mx-auto w-full px-3 sm:px-5 py-6 sm:py-15 flex-1">
 
 
-        <div className="rounded-3xl px-4 py-3.5 mb-5 space-y-3 shadow-lg" style={{ background: "linear-gradient(90deg, rgba(59,130,246,0.1) 0%, rgba(16,185,129,0.1) 100%)", border: "2px solid rgba(59,130,246,0.3)" }}>
+        <div className="rounded-3xl px-4 py-3.5 mb-5 space-y-3 shadow-lg" style={{ background: "linear-gradient(90deg, rgba(59,130,246,0.1) 0%, rgba(16,185,129,0.1) 100%)", border: "2px solid rgba(59,130,246,0.1)" }}>
           <div className="flex flex-wrap gap-2 items-center">
             <div className="relative flex-1 min-w-40 max-w-[min(75vw,300px)] sm:max-w-sm">
               <span className="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 text-[17px] pointer-events-none">
@@ -317,7 +317,7 @@ const router = useRouter();
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={`${inputCls} w-full pl-9 pr-8`}
-                style={{ borderColor: "#3b82f6", borderWidth: "2px", fontWeight: "600" }}
+                style={{ borderColor: "rgba(149, 154, 162, 0.1)", color:"black", borderWidth: "2px", fontWeight: "600" }}
               />
               {search && (
                 <button

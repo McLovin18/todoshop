@@ -28,7 +28,7 @@ export default function BottomBar({ role = "admin", tipoEmprendimiento = null }:
   const { carrito } = useUser();
   
   // Determinar si es una página pública
-  const isPublicPage = pathname === "/" || pathname === "/productos" || pathname === "/reservas" || pathname === "/cart" || pathname === "/search-results" || pathname === "/login";
+  const isPublicPage = pathname === "/" || pathname === "/productos" || pathname === "/reservas" || pathname === "/cart" || pathname === "/search-results" || pathname === "/login" || pathname === "/product-detail";
   
   // Items dinámicos según tipo de emprendedor
   const emprendedorItems = [
@@ -59,7 +59,7 @@ export default function BottomBar({ role = "admin", tipoEmprendimiento = null }:
             <Link href={item.path} className="flex flex-col items-center py-3 px-2 hover:bg-white/10 relative transition-colors" style={{ color: "#ffffff" }}>
               <span className="material-icons-round text-xl">{item.icon}</span>
               {/* Badge solo para carrito */}
-              {(item.icon === "shopping_bag" || item.icon === "shopping_cart") ? (
+              {(item.icon === "shopping_cart") ? (
                 carrito && carrito.length > 0 && (
                   <span className="absolute top-0 right-3 bg-blue-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 z-20" style={{ borderColor: "#1e293b" }}>
                     {carrito.length}
