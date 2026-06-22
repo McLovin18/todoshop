@@ -19,6 +19,10 @@ export default function Home() {
 const router = useRouter();
   const searchParams = useSearchParams();
 
+  const handleViewDetail = (producto: any) => {
+    router.push(`/product-detail?id=${producto.id}`);
+  };
+
   const categoriaFromUrl = (
     searchParams?.get("cat") ||
     searchParams?.get("category") ||
@@ -351,9 +355,8 @@ const router = useRouter();
                 showCart
                 showEye
                 showFav={isAuthenticated}
-                onClick={() => {}}
-                onAddCart={() => {}}
-                onEye={() => {}}
+                onClick={() => handleViewDetail(producto)}
+                onEye={() => handleViewDetail(producto)}
                 isCompact={false}
               />
             ))}
