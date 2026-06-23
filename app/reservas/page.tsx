@@ -17,10 +17,29 @@ export default function ReservasPage() {
   const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
   const [selectedAlimento, setSelectedAlimento] = useState<Alimento | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedExtra, setSelectedExtra] = useState<{ nombre: string; precio: string } | null>(null);
-
+  const [selectedExtras, setSelectedExtras] = useState<
+    { nombre: string; precio: string }[]
+  >([]);
   const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
   const diaActual = DIAS_SEMANA[new Date().getDay()];
+
+
+  function toggleExtra(extra: { nombre: string; precio: string }) {
+    setSelectedExtras(prev => {
+      const existe = prev.some(e => e.nombre === extra.nombre);
+
+      if (existe) {
+        return prev.filter(e => e.nombre !== extra.nombre);
+      }
+
+      return [...prev, extra];
+    });
+  }
+
+  const totalExtras = selectedExtras.reduce(
+    (sum, extra) => sum + Number(extra.precio),
+    0
+  );
 
   useEffect(() => {
     async function loadData() {
@@ -86,16 +105,16 @@ export default function ReservasPage() {
     }
     
     let mensaje = `Hola, quiero reservar: ${selectedAlimento.nombre}`;
-    if (selectedExtra) {
-      mensaje += ` con ${selectedExtra.nombre} (+$${selectedExtra.precio})`;
+    if (selectedExtras && selectedExtras.length > 0) {
+      mensaje += ` ${selectedExtras.map(e => e.nombre).join("+ ")} (+$${selectedExtras.reduce((sum, e) => sum + Number(e.precio), 0)})`;
     }
-    mensaje += `. Precio total: $${selectedAlimento.precio}${selectedExtra ? ` + $${selectedExtra.precio}` : ""}`;
+    mensaje += `. Precio total: $${selectedAlimento.precio}${selectedExtras && selectedExtras.length > 0 ? ` + $${selectedExtras.reduce((sum, e) => sum + Number(e.precio), 0)}` : ""}`;
     
     const whatsappUrl = `https://wa.me/${whatsappEmprendedor}?text=${encodeURIComponent(mensaje)}`;
     window.open(whatsappUrl, "_blank");
     
     setSelectedAlimento(null);
-    setSelectedExtra(null);
+    setSelectedExtras([]);
   }
 
   if (loading) {
@@ -241,7 +260,7 @@ export default function ReservasPage() {
                 <button
                   onClick={() => {
                     setSelectedAlimento(null);
-                    setSelectedExtra(null);
+                    setSelectedExtras([]);
                   }}
                   className="text-slate-400 hover:text-slate-600 text-3xl"
                 >
@@ -276,26 +295,31 @@ export default function ReservasPage() {
                     <h4 className="font-semibold text-slate-800 mb-3">Opciones adicionales:</h4>
                     <div className="space-y-2">
                       {selectedAlimento.extras.map((extra, idx) => (
-                        <label
+                      <label
                           key={idx}
                           className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition ${
-                            selectedExtra?.nombre === extra.nombre
-                              ? "border-emerald-500 bg-emerald-50"
-                              : "border-slate-200 hover:border-emerald-300"
+                              selectedExtras.some(e => e.nombre === extra.nombre)
+                                  ? "border-emerald-500 bg-emerald-50"
+                                  : "border-slate-200 hover:border-emerald-300"
                           }`}
-                        >
+                      >
                           <div className="flex items-center gap-3">
-                            <input
-                              type="radio"
-                              name="extra"
-                              checked={selectedExtra?.nombre === extra.nombre}
-                              onChange={() => setSelectedExtra(extra)}
-                              className="h-5 w-5 accent-emerald-600"
-                            />
-                            <span className="font-medium text-slate-700">{extra.nombre}</span>
+                              <input
+                                  type="checkbox"
+                                  checked={selectedExtras.some(e => e.nombre === extra.nombre)}
+                                  onChange={() => toggleExtra(extra)}
+                                  className="h-5 w-5 accent-emerald-600"
+                              />
+
+                              <span className="font-medium text-slate-700">
+                                  {extra.nombre}
+                              </span>
                           </div>
-                          <span className="font-bold text-emerald-600">+${extra.precio}</span>
-                        </label>
+
+                          <span className="font-bold text-emerald-600">
+                              +${extra.precio}
+                          </span>
+                      </label>
                       ))}
                     </div>
                   </div>
@@ -305,7 +329,7 @@ export default function ReservasPage() {
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl text-white">
                   <span className="font-semibold">Total a pagar:</span>
                   <span className="text-2xl font-bold">
-                    ${Number(selectedAlimento.precio) + (selectedExtra ? Number(selectedExtra.precio) : 0)}
+                    ${Number(selectedAlimento.precio) + (selectedExtras ? totalExtras : 0)}
                   </span>
                 </div>
 
