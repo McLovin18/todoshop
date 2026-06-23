@@ -14,8 +14,8 @@ import { Source_Serif_4 } from "next/font/google";
 // Optimiza regeneración de página principal y otros contenidos estáticos
 export const revalidate = 1800;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://todoshop.com";
-const SITE_NAME = "todoShop";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://todomarketec.com";
+const SITE_NAME = "todoMarket";
 const sourceSerif4 = Source_Serif_4({
   subsets: ["latin"],
   weight: ["400"],
@@ -25,11 +25,11 @@ const sourceSerif4 = Source_Serif_4({
 
 export const metadata: Metadata = {
   title: {
-    default: "todoShop - Tu tienda universitaria | Ecuador",
+    default: "todoMarket - Tu tienda universitaria | Ecuador",
     template: "%s | todoShop",
   },
   description:
-    "todoShop - La plataforma de venta para estudiantes universitarios. Compra y reserva productos y alimentos de emprendedores estudiantiles. Envíos a todo Ecuador.",
+    "todoMarket - La plataforma de venta para estudiantes universitarios. Compra y reserva productos y alimentos de emprendedores estudiantiles. Envíos a todo Ecuador.",
   keywords: [
     "tienda universitaria",
     "estudiantes Ecuador",
@@ -37,10 +37,10 @@ export const metadata: Metadata = {
     "emprendedores universitarios",
     "productos estudiantes",
     "alimentos reservas",
-    "todoShop",
+    "todoMarket",
     "plataforma universitaria",
   ],
-  creator: "todoShop",
+  creator: "todoMarket",
   metadataBase: new URL(SITE_URL),
   icons: {
     icon: "/favicon.ico",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     locale: "es_ES",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: "todoShop - Tu tienda universitaria",
+    title: "todoMarket - Tu tienda universitaria",
     description:
       "La plataforma de venta para estudiantes universitarios. Compra y reserva productos y alimentos de emprendedores estudiantiles.",
     images: [
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/og-image.jpg`,
         width: 1200,
         height: 630,
-        alt: "todoShop - Tienda universitaria",
+        alt: "todoMarket - Tienda universitaria",
         type: "image/jpeg",
       },
     ],
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
   // Twitter Card
   twitter: {
     card: "summary_large_image",
-    title: "todoShop - Tu tienda universitaria",
+    title: "TodoMarket - Tu tienda universitaria",
     description:
       "La plataforma de venta para estudiantes universitarios. Compra y reserva productos y alimentos de emprendedores estudiantiles.",
     images: [`${SITE_URL}/twitter-image.jpg`],
