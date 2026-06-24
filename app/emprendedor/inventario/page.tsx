@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import type { Producto } from "../../lib/productos-db";
 import ProductoFormModal from "./ProductoFormModal";
+import StockEditModal from "./StockEditModal";
 import { obtenerCategorias } from "../../lib/categorias-db";
 import {
   crearProducto,
@@ -17,6 +18,7 @@ export default function AdminInventario() {
 
   const [showForm, setShowForm] = useState(false);
   const [editData, setEditData] = useState<Producto | null>(null);
+  const [stockEditData, setStockEditData] = useState<Producto | null>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -289,6 +291,8 @@ export default function AdminInventario() {
                                   <div className="mt-1 flex items-center gap-2 text-xs whitespace-nowrap">
                                     <button className="text-rose-600 font-medium" onClick={() => { setEditData(p); setShowForm(true); }}>Editar</button>
                                     <span className="text-slate-300">|</span>
+                                    <button className="text-emerald-600 font-medium" onClick={() => { setStockEditData(p); }}>Stock</button>
+                                    <span className="text-slate-300">|</span>
                                     <button className="text-slate-600 hover:text-slate-900" onClick={async () => { if (confirm("¿Eliminar producto?")) { await eliminarProducto(p.id); const prods = await obtenerProductos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined }); setProductos(prods); } }}>Eliminar</button>
                                   </div>
                                 </div>
@@ -336,6 +340,17 @@ export default function AdminInventario() {
           </>
 
       </div>
+
+      {stockEditData && (
+        <StockEditModal
+          producto={stockEditData}
+          onClose={() => setStockEditData(null)}
+          onSave={async () => {
+            const prods = await obtenerProductos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined });
+            setProductos(prods);
+          }}
+        />
+      )}
     </div>
   );
 }

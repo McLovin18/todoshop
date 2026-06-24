@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import type { Alimento } from "../../lib/alimentos-db";
 import type { Alimento as AlimentoForm } from "./AlimentoForm";
 import AlimentoFormModal from "./AlimentoFormModal";
+import StockEditModal from "./StockEditModal";
 import { obtenerCategoriasAlimentos } from "../../lib/categorias-db";
 import {
   crearAlimento,
@@ -20,6 +21,7 @@ export default function ProductosReservaPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [editData, setEditData] = useState<AlimentoForm | null>(null);
+  const [stockEditData, setStockEditData] = useState<AlimentoForm | null>(null);
   const [productos, setProductos] = useState<Alimento[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -319,6 +321,8 @@ export default function ProductosReservaPage() {
                                   <div className="mt-1 flex items-center gap-2 text-xs whitespace-nowrap">
                                     <button className="text-emerald-600 font-medium" onClick={() => { setEditData(p as any); setShowForm(true); }}>Editar</button>
                                     <span className="text-slate-300">|</span>
+                                    <button className="text-blue-600 font-medium" onClick={() => { setStockEditData(p as any); }}>Stock</button>
+                                    <span className="text-slate-300">|</span>
                                     <button className="text-slate-600 hover:text-slate-900" onClick={async () => { if (confirm("¿Eliminar alimento?")) { await eliminarAlimento(p.id); const prods = await obtenerAlimentos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined }); setProductos(prods); } }}>Eliminar</button>
                                   </div>
                                 </div>
@@ -365,6 +369,17 @@ export default function ProductosReservaPage() {
             </div>
 
       </div>
+
+      {stockEditData && (
+        <StockEditModal
+          alimento={stockEditData}
+          onClose={() => setStockEditData(null)}
+          onSave={async () => {
+            const prods = await obtenerAlimentos({ incluirSinStock: true, emprendedorId: emprendedorId || undefined });
+            setProductos(prods);
+          }}
+        />
+      )}
     </div>
   );
 }

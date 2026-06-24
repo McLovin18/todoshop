@@ -394,9 +394,9 @@ const router = useRouter();
                     <div>
                       <h3 className="font-bold text-sm">{emprendedor.displayName || "Emprendedor"}</h3>
                       <p className="text-xs text-slate-600">{emprendedor.tipoEmprendimiento || "General"}</p>
+                      <p className="text-xs text-slate-500 hidden lg:block">{emprendedor.nombreNegocio || emprendedor.displayName || "Negocio"}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500 mb-2">{emprendedor.email}</p>
                   <button
                     onClick={() => {
                       const targetPath = emprendedor.tipoEmprendimiento === "comida" 
