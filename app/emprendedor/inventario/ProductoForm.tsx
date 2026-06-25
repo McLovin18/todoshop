@@ -1031,7 +1031,7 @@ export default function ProductoForm({ initialData = null, onSave, onCancel }: P
       <div className="grid gap-5 md:max-w-2xl md:grid-cols-2">
         <label className="block md:col-span-2">
           <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">Precio base</span>
-          <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-lg font-semibold text-slate-900 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100" type="number" min="0" value={precio} onChange={e => setPrecio(e.target.value)} required />
+          <input className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-lg font-semibold text-slate-900 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100" type="number" min="0" value={precio} step="0.01" onChange={e => setPrecio(e.target.value)} required />
         </label>
         <label className="block">
           <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">Descuento (%)</span>
