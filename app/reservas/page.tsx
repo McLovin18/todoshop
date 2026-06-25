@@ -111,7 +111,16 @@ export default function ReservasPage() {
     mensaje += `. Precio total: $${selectedAlimento.precio}${selectedExtras && selectedExtras.length > 0 ? ` + $${selectedExtras.reduce((sum, e) => sum + Number(e.precio), 0)}` : ""}`;
     
     const whatsappUrl = `https://wa.me/${whatsappEmprendedor}?text=${encodeURIComponent(mensaje)}`;
-    window.open(whatsappUrl, "_blank");
+    // Detectar si es móvil
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // Móvil: evita bloqueo de popup, WhatsApp app intercepta el wa.me
+      window.location.href = whatsappUrl;
+    } else {
+      // Desktop: abre WhatsApp Web en nueva pestaña sin problema
+      window.open(whatsappUrl, "_blank");
+    }
     
     setSelectedAlimento(null);
     setSelectedExtras([]);
