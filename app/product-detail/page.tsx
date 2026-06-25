@@ -410,6 +410,7 @@ export default function ProductDetailPage({ params }) {
                     Características
                   </button>
                 )}
+                {/*
                 <button
                   onClick={() => handleTabToggle("resenas")}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold transition-all ${
@@ -432,6 +433,7 @@ export default function ProductDetailPage({ params }) {
                     </span>
                   )}
                 </button>
+                */}
               </div>
 
               {/* Panel de contenido del tab activo */}
@@ -444,6 +446,7 @@ export default function ProductDetailPage({ params }) {
                       {producto.caracteristicas.map((c, idx) => (
                         <li key={idx} className="flex items-start gap-2.5 text-sm text-black/80 dark:text-white/80">
                           <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-white/20 mt-2 flex-shrink-0" />
+                          <span>{c}</span>
                         </li>
                       ))}
                     </ul>
@@ -667,7 +670,7 @@ export default function ProductDetailPage({ params }) {
         </div>
       </div>
 
-        {/* ── TABS móvil: debajo de info, encima de relacionados ── */}
+{/* ── TABS móvil: debajo de info, encima de relacionados ── */}
         <div className="md:hidden mt-4 flex flex-col gap-0">
           <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-white/[0.08]">
             {hasCaracteristicas && (
@@ -676,14 +679,14 @@ export default function ProductDetailPage({ params }) {
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold transition-all ${
                   activeTab === "caracteristicas"
                     ? "bg-black text-white"
-                    : "bg-white text-slate-600 hover:bg-slate-50"
+                    : "bg-white text-slate-600 hover:bg-slate-50 text-black"
                 }`}
               >
                 <span className="material-icons-round text-[16px]">list_alt</span>
                 Características
               </button>
             )}
-            <button
+            {/* <button
               onClick={() => handleTabToggle("resenas")}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-semibold transition-all ${
                 hasCaracteristicas ? "border-l border-slate-200 dark:border-white/[0.08]" : ""
@@ -704,7 +707,7 @@ export default function ProductDetailPage({ params }) {
                   {reviews.length}
                 </span>
               )}
-            </button>
+            </button> */}
           </div>
 
           {activeTab && (
@@ -714,6 +717,7 @@ export default function ProductDetailPage({ params }) {
                   {producto.caracteristicas.map((c, idx) => (
                     <li key={idx} className="flex items-start gap-2.5 text-sm text-black/80 dark:text-white/80">
                       <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-white/20 mt-2 flex-shrink-0" />
+                      <span>{c}</span>
                     </li>
                   ))}
                 </ul>
