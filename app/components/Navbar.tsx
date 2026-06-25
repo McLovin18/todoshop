@@ -462,7 +462,7 @@ export const Navbar = () => {
               style={{ borderColor: "#E0E0E0" }}
             >
               <span className="font-bold text-base" style={{ color: "#000000" }}>
-                � todoShop
+                todoShop
               </span>
               <button
                 onClick={() => setMobileOpen(false)}
@@ -536,7 +536,7 @@ export const Navbar = () => {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors bg-emerald-50 text-emerald-700"
               >
                 <span className="material-icons-round text-lg">restaurant</span>
-                🍽️ Reservas
+                Reservas
               </a>
               
               {/* Categorías visibles en navbar móvil */}
@@ -564,7 +564,7 @@ export const Navbar = () => {
                 style={{ color: "#000000" }}
               >
                 <span className="material-icons-round text-lg">category</span>
-                📂 Ver todas las categorías
+                Ver todas las categorías
               </a>
 
               {/* Links antiguos (vacío) */}
