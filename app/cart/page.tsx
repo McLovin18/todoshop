@@ -146,6 +146,8 @@ export default function CartPage() {
     if (!group) return "";
 
     let message = "Hola, me gustaría realizar una compra:\n\n";
+    message += `Vengo de la web www.todomarketec.com\n`;
+
 
     message += `🏪 ${group.emprendedorNombre}\n`;
     message += `━━━━━━━━━━━━━━━\n`;
@@ -211,7 +213,6 @@ export default function CartPage() {
       .join("\n\n");
 
       // Agregar mensaje de origen
-    message += `Holaaa vengo de la web www.todomarketec.com\n`;
     message += productosText;
     message += `\n💰 Subtotal: $${group.subtotal.toFixed(2)}\n\n`;
     message += `━━━━━━━━━━━━━━━━\n`;
