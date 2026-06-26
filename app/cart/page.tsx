@@ -204,7 +204,6 @@ export default function CartPage() {
           variaciones ? `: ${variaciones}` : null,
           `Precio unitario: $${finalPrice.toFixed(2)}`,
           `Subtotal: $${lineTotal.toFixed(2)}`,
-          `Entrega aproximada: ${tiempoEntrega}h`,
         ]
           .filter(Boolean)
           .join("\n");
