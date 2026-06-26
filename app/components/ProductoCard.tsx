@@ -193,11 +193,13 @@ const cardStyles = `
     font-family: 'Barlow', sans-serif;
     font-weight: 500;
     font-size: 11px;
-    line-height: 1.2;
+    line-height: 1.3;
     color: #9CA3AF;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
+    min-height: 2.6em;
   }
 
   @media (min-width: 640px) {
@@ -324,6 +326,7 @@ function ProductoCard({
   showFav = false,
   isCompact = true,
   index = 0,
+  emprendedorDisplayName,
 }: {
   producto?: any;
   onClick?: any;
@@ -334,6 +337,7 @@ function ProductoCard({
   showFav?: boolean;
   index?: number;
   isCompact?: boolean;
+  emprendedorDisplayName?: string;
 } = {}): Element | null {
   if (!producto || !producto.id) return null;
 
@@ -368,6 +372,7 @@ function ProductoCard({
 
   // Nombre del dueño / emprendimiento dueño del producto
   const ownerName =
+    emprendedorDisplayName ||
     producto?.emprendedorNombre ||    producto?.emprendimientoNombre ||
     producto?.tiendaNombre ||
     producto?.ownerName ||

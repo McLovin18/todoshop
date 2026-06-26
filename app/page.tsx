@@ -67,6 +67,7 @@ const router = useRouter();
   const categoriesScrollRef = useRef<HTMLDivElement>(null);
   const [alimentos, setAlimentos] = useState<any[]>([]);
   const [emprendedores, setEmprendedores] = useState<any[]>([]);
+  const [allEmprendedores, setAllEmprendedores] = useState<any[]>([]);
 
   useEffect(() => {
     const categoriasRef = collection(db, "categorias");
@@ -113,6 +114,20 @@ const router = useRouter();
     fetchEmprendedores();
   }, []);
 
+  // Cargar todos los emprendedores para mostrar displayName en productos
+  useEffect(() => {
+    async function fetchAllEmprendedores() {
+      try {
+        const snapshot = await getDocs(collection(db, "emprendedores"));
+        const emps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAllEmprendedores(emps);
+      } catch (error) {
+        console.error("Error cargando todos los emprendedores:", error);
+      }
+    }
+    fetchAllEmprendedores();
+  }, []);
+
   const selectCategoria = useCallback(
     (catId: string) => {
       setFilterCat(catId);
@@ -127,6 +142,17 @@ const router = useRouter();
     setFilterSub("");
     setFilterSubsub("");
   }, []);
+
+  // Crear mapa de emprendedores por uid
+  const emprendedoresMap = useMemo(() => {
+    const map = new Map<string, any>();
+    allEmprendedores.forEach(emp => {
+      if (emp.uid) {
+        map.set(emp.uid, emp);
+      }
+    });
+    return map;
+  }, [allEmprendedores]);
 
   useEffect(() => {
     async function fetchProductos() {
@@ -347,19 +373,23 @@ const router = useRouter();
             Productos Recientes
           </h2>
           <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            {productos.slice(0, 8).map((producto, index) => (
-              <ProductoCard
-                key={producto.id}
-                producto={producto}
-                index={index}
-                showCart
-                showEye
-                showFav={isAuthenticated}
-                onClick={() => handleViewDetail(producto)}
-                onEye={() => handleViewDetail(producto)}
-                isCompact={false}
-              />
-            ))}
+            {productos.slice(0, 8).map((producto, index) => {
+              const emprendedor = producto.emprendedorId ? emprendedoresMap.get(producto.emprendedorId) : null;
+              return (
+                <ProductoCard
+                  key={producto.id}
+                  producto={producto}
+                  index={index}
+                  showCart
+                  showEye
+                  showFav={isAuthenticated}
+                  onClick={() => handleViewDetail(producto)}
+                  onEye={() => handleViewDetail(producto)}
+                  isCompact={false}
+                  emprendedorDisplayName={emprendedor?.displayName}
+                />
+              );
+            })}
           </div>
         </div>
 

@@ -232,6 +232,17 @@ export default function ProductsByCategoryPage() {
     return () => unsubscribe();
   }, []);
 
+  // Crear mapa de emprendedores por uid
+  const emprendedoresMap = useMemo(() => {
+    const map = new Map<string, any>();
+    emprendedores.forEach(emp => {
+      if (emp.uid) {
+        map.set(emp.uid, emp);
+      }
+    });
+    return map;
+  }, [emprendedores]);
+
   // 3. Filtrado y orden (Memoizado)
   const productosFiltrados = useMemo(() => {
     // Usar URL params primero, luego estado local como fallback
@@ -488,16 +499,20 @@ export default function ProductsByCategoryPage() {
         ) : (
           <>
             <div className={`grid grid-cols-2 gap-2 lg:grid-cols-5 animate-in fade-in duration-700`}>
-              {paginatedProducts.map((p: any) => (
-                <ProductoCard
-                  key={p.id}
-                  producto={p}
-                  showCart
-                  showEye
-                  showFav={isAuthenticated}
-                  isCompact={false}
-                />
-              ))}
+              {paginatedProducts.map((p: any) => {
+                const emprendedor = p.emprendedorId ? emprendedoresMap.get(p.emprendedorId) : null;
+                return (
+                  <ProductoCard
+                    key={p.id}
+                    producto={p}
+                    showCart
+                    showEye
+                    showFav={isAuthenticated}
+                    isCompact={false}
+                    emprendedorDisplayName={emprendedor?.displayName}
+                  />
+                );
+              })}
             </div>
             {/* Paginación */}
             {totalPages > 1 && (

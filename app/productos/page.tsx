@@ -93,6 +93,17 @@ const router = useRouter();
     return () => unsubscribe();
   }, []);
 
+  // Crear mapa de emprendedores por uid
+  const emprendedoresMap = useMemo(() => {
+    const map = new Map<string, any>();
+    emprendedores.forEach(emp => {
+      if (emp.uid) {
+        map.set(emp.uid, emp);
+      }
+    });
+    return map;
+  }, [emprendedores]);
+
   const selectCategoria = useCallback(
     (catId: string) => {
       setFilterCat(catId);
@@ -457,20 +468,23 @@ const router = useRouter();
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-5 animate-in fade-in duration-700">
-              {paginatedProducts.map((p: any, index: number) => (
-                <ProductoCard
-                  key={p.id}
-                  producto={p}
-                  index={index}
-                  showCart
-                  showEye
-              
-                  showFav={isAuthenticated}
-                  onClick={() => {}}
-                  onEye={() => {}}
-                  isCompact={false}
-                />
-              ))}
+              {paginatedProducts.map((p: any, index: number) => {
+                const emprendedor = p.emprendedorId ? emprendedoresMap.get(p.emprendedorId) : null;
+                return (
+                  <ProductoCard
+                    key={p.id}
+                    producto={p}
+                    index={index}
+                    showCart
+                    showEye
+                    showFav={isAuthenticated}
+                    onClick={() => {}}
+                    onEye={() => {}}
+                    isCompact={false}
+                    emprendedorDisplayName={emprendedor?.displayName}
+                  />
+                );
+              })}
             </div>
             {totalPages > 1 && (
               <div className="flex flex-wrap justify-center items-center gap-2 mt-8 select-none w-full">
