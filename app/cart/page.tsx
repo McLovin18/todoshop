@@ -200,6 +200,7 @@ export default function CartPage() {
 
         return [
           `📦 ${p.nombre}`,
+          ` vengo de la web www.todomarketec.com`,
           `Cantidad: ${p.cantidad || 1}`,
           variaciones ? `: ${variaciones}` : null,
           `Precio unitario: $${finalPrice.toFixed(2)}`,
