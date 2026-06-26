@@ -254,10 +254,11 @@ export const Navbar = () => {
         }}
       >
         {/* ── Header principal ── */}
-        <div
-          className="relative flex items-center justify-between gap-4 px-4 py-2 lg:px-6 lg:py-2"
-          style={{ color: "#000000" }}
-        >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div
+            className="relative flex items-center justify-between gap-4 py-2"
+            style={{ color: "#000000" }}
+          >
           {/* Logo y buscador - izquierda */}
           <div className="flex items-center gap-4 shrink-0">
             <button
@@ -440,6 +441,7 @@ export const Navbar = () => {
             
           </div>
         </div>
+      </div>
       </nav>
 
       {/* ══════════════════ MOBILE DRAWER ══════════════════ */}
