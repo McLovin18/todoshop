@@ -105,13 +105,18 @@ export default function CartPage() {
   const groupedByEmprendedor = carrito.reduce((groups: any, product: any) => {
     const emprendedorId = product.emprendedorId || 'unknown';
     
-    // Obtener nombre del emprendedor desde el producto o desde el mapa
-    let emprendedorNombre = product.emprendedorNombre || product.emprendimientoNombre || product.tiendaNombre;
-    if (!emprendedorNombre && emprendedorId !== 'unknown') {
+    // Priorizar el displayName del emprendedor desde el mapa
+    let emprendedorNombre = '';
+    if (emprendedorId !== 'unknown') {
       const emprendedorData = emprendedoresMap.get(emprendedorId);
       if (emprendedorData) {
-        emprendedorNombre = emprendedorData.displayName || 'Emprendedor desconocido';
+        emprendedorNombre = emprendedorData.displayName;
       }
+    }
+    
+    // Si no hay displayName, usar campos del producto como fallback
+    if (!emprendedorNombre) {
+      emprendedorNombre = product.emprendedorNombre || product.emprendimientoNombre || product.tiendaNombre;
     }
     
     emprendedorNombre = emprendedorNombre || 'Emprendedor desconocido';
