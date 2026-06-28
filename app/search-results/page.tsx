@@ -1,7 +1,7 @@
 "use client";
 import { useUser } from "../context/UserContext";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import ProductoCard from "../components/ProductoCard";
 import { Loading3DIcon } from "../components/Loading3DIcon";
 import { obtenerProductos } from "../lib/productos-db";
@@ -15,6 +15,7 @@ import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 export default function SearchResultsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const queryParam = searchParams?.get("query") || "";
   const categoriaId = (searchParams?.get("cat") || searchParams?.get("category") || "").trim();
@@ -93,7 +94,18 @@ export default function SearchResultsPage() {
 
 
       // --- Paginación responsive: 10 productos en móvil, cols*3 en desktop ---
-      const [currentPage, setCurrentPage] = useState(1);
+      const pageFromUrl = Number(searchParams?.get("page")) || 1;
+      const [currentPage, setCurrentPage] = useState(pageFromUrl);
+      const hasLoadedRef = useRef(false);
+      
+      // Actualizar URL cuando cambia la página
+      const updatePage = (page: number) => {
+        setCurrentPage(page);
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        params.set("page", page.toString());
+        router.push(`?${params.toString()}`, { scroll: false });
+      };
+      
       const getProductsPerPage = () => {
         if (typeof window !== 'undefined') {
           if (window.innerWidth < 640) return 10; // móvil
@@ -113,6 +125,36 @@ export default function SearchResultsPage() {
         return () => window.removeEventListener('resize', handleResize);
       }, []);
       const totalPages = Math.ceil(productosFiltrados.length / productsPerPage);
+      
+      // Resetear a página 1 cuando cambian los filtros (solo después de la carga inicial)
+      useEffect(() => {
+        if (hasLoadedRef.current) {
+          setCurrentPage(1);
+          updatePage(1);
+        }
+        hasLoadedRef.current = true;
+      }, [productosFiltrados.length, marca, categoriaId, search, precioMin, precioMax, orden]);
+      
+      // Calcular rango de páginas a mostrar en paginación simplificada
+      const getPageRange = () => {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const maxVisible = isMobile ? 4 : 3;
+        const range = [];
+        
+        let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let end = Math.min(totalPages, start + maxVisible - 1);
+        
+        if (end - start < maxVisible - 1) {
+          start = Math.max(1, end - maxVisible + 1);
+        }
+        
+        for (let i = start; i <= end; i++) {
+          range.push(i);
+        }
+        
+        return range;
+      };
+      
       const paginatedProducts = productosFiltrados.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage);
 
 
@@ -217,26 +259,40 @@ export default function SearchResultsPage() {
               <div className="flex flex-wrap justify-center items-center gap-2 mt-8 select-none w-full">
                 <button
                   className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-slate-300 text-slate-900 hover:border-black/60 transition-all disabled:opacity-40"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  onClick={() => updatePage(1)}
+                  disabled={currentPage === 1}
+                >
+                  &lt;&lt;
+                </button>
+                <button
+                  className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-slate-300 text-slate-900 hover:border-black/60 transition-all disabled:opacity-40"
+                  onClick={() => updatePage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
                 >
                   &lt;
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                {getPageRange().map((n) => (
                   <button
                     key={n}
                     className={`px-3 py-1.5 rounded border text-xs font-medium transition-all ${currentPage === n ? 'bg-black border-black text-white shadow-sm' : 'bg-white border-slate-300 text-slate-900 hover:border-black/60'}`}
-                    onClick={() => setCurrentPage(n)}
+                    onClick={() => updatePage(n)}
                   >
                     {n}
                   </button>
                 ))}
                 <button
                   className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-slate-300 text-slate-900 hover:border-black/60 transition-all disabled:opacity-40"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => updatePage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
                 >
                   &gt;
+                </button>
+                <button
+                  className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-slate-300 text-slate-900 hover:border-black/60 transition-all disabled:opacity-40"
+                  onClick={() => updatePage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  &gt;&gt;
                 </button>
               </div>
             )}

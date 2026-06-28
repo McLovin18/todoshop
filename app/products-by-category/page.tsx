@@ -112,7 +112,7 @@ export default function ProductsByCategoryPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [emprendedores, setEmprendedores] = useState<any[]>([]);
-  const [filterNegocio, setFilterNegocio] = useState("");
+  const [filterNegocio, setFilterNegocio] = useState(emprendedorFromUrl);
   const [showNegocioDropdown, setShowNegocioDropdown] = useState(false);
   const categoriesScrollRef = useRef<HTMLDivElement>(null);
 
@@ -121,38 +121,38 @@ export default function ProductsByCategoryPage() {
     setIsMounted(true);
     const loggedIn = Boolean(localStorage.getItem("token"));
     setIsAuthenticated(loggedIn);
-    
-    // Sincronizar filtros de precio desde URL params después del montaje
     const minPrice = searchParams?.get("minPrice") || "";
     const maxPrice = searchParams?.get("maxPrice") || "";
     if (minPrice) setPrecioMin(minPrice);
     if (maxPrice) setPrecioMax(maxPrice);
-    
-    // Mostrar los inputs de precio si hay parámetros en la URL
-    if (minPrice || maxPrice) {
-      setShowPrecio(true);
-    }
-  }, [searchParams]);
+    if (minPrice || maxPrice) setShowPrecio(true);
+  }, []); // ← solo al montar
+
 
   const selectCategoria = useCallback(
     (catId: string) => {
       setFilterCat(catId);
       setFilterSub("");
       setFilterSubsub("");
-      const url = catId
-        ? `/products-by-category?cat=${encodeURIComponent(catId)}`
-        : "/products-by-category";
-      router.replace(url, { scroll: false });
+      const params = new URLSearchParams();
+      if (catId) params.set("cat", encodeURIComponent(catId));
+      if (filterNegocio) params.set("emprendedor", filterNegocio);
+      params.set("page", "1");
+      const qs = params.toString();
+      router.replace(`/products-by-category${qs ? `?${qs}` : ""}`, { scroll: false });
     },
-    [router]
+    [router, filterNegocio]
   );
 
   const selectTodas = useCallback(() => {
     setFilterCat("");
     setFilterSub("");
     setFilterSubsub("");
-    router.replace("/products-by-category", { scroll: false });
-  }, [router]);
+    const params = new URLSearchParams();
+    if (filterNegocio) params.set("emprendedor", filterNegocio);
+    const qs = params.toString();
+    router.replace(`/products-by-category${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [router, filterNegocio]);
 
   // 2. Fetch productos (siempre catálogo completo + filtro por árbol de categorías)
   useEffect(() => {
@@ -318,7 +318,21 @@ export default function ProductsByCategoryPage() {
 
   
     // --- Paginación responsive: 10 productos en móvil, cols*3 en desktop ---
-    const [currentPage, setCurrentPage] = useState(1);
+    const pageFromUrl = Number(searchParams?.get("page")) || 1;
+    const [currentPage, setCurrentPage] = useState(pageFromUrl);
+    
+    // Actualizar URL cuando cambia la página
+  const updatePage = (page: number) => {
+    setCurrentPage(page);
+    const params = new URLSearchParams();
+    if (filterCat) params.set("cat", filterCat);
+    if (filterSub) params.set("subcat", filterSub);
+    if (filterSubsub) params.set("subsubcat", filterSubsub);
+    if (filterNegocio) params.set("emprendedor", filterNegocio);
+    params.set("page", page.toString());
+    router.push(`/products-by-category?${params.toString()}`, { scroll: false });
+  };
+        
     const getProductsPerPage = () => {
       if (typeof window !== 'undefined') {
         if (window.innerWidth < 640) return 10; // móvil
@@ -340,10 +354,79 @@ export default function ProductsByCategoryPage() {
     
     const totalPages = Math.ceil(productosFiltrados.length / productsPerPage);
     
-    // Resetear a página 1 cuando cambia el filtro
-    useEffect(() => {
+
+  const isFirstLoad = useRef(true);
+  const prevFiltersRef = useRef({
+    categoriaId,
+    subcategoriaId,
+    subsubcategoriaId,
+    search,
+    precioMin,
+    precioMax,
+    filterNegocio,
+    urlMinPrice,
+    urlMaxPrice,
+  });
+
+    // Resetear a página 1 cuando cambian los filtros (solo después de la carga inicial)
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      setCurrentPage(pageFromUrl); // restaura página desde URL al recargar
+      return;
+    }
+
+    const prev = prevFiltersRef.current;
+    const filtersChanged =
+      prev.categoriaId !== categoriaId ||
+      prev.subcategoriaId !== subcategoriaId ||
+      prev.subsubcategoriaId !== subsubcategoriaId ||
+      prev.search !== search ||
+      prev.precioMin !== precioMin ||
+      prev.precioMax !== precioMax ||
+      prev.filterNegocio !== filterNegocio ||
+      prev.urlMinPrice !== urlMinPrice ||
+      prev.urlMaxPrice !== urlMaxPrice;
+
+    prevFiltersRef.current = {
+      categoriaId,
+      subcategoriaId,
+      subsubcategoriaId,
+      search,
+      precioMin,
+      precioMax,
+      filterNegocio,
+      urlMinPrice,
+      urlMaxPrice,
+    };
+
+    if (filtersChanged) {
       setCurrentPage(1);
-    }, [productosFiltrados.length, categoriaId, subcategoriaId, subsubcategoriaId, urlMinPrice, urlMaxPrice, search]);
+      updatePage(1);
+    }
+  }, [categoriaId, subcategoriaId, subsubcategoriaId, search, precioMin, precioMax, filterNegocio, urlMinPrice, urlMaxPrice]);
+
+
+
+    // Calcular rango de páginas a mostrar en paginación simplificada
+    const getPageRange = () => {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const maxVisible = isMobile ? 4 : 3;
+      const range = [];
+      
+      let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+      let end = Math.min(totalPages, start + maxVisible - 1);
+      
+      if (end - start < maxVisible - 1) {
+        start = Math.max(1, end - maxVisible + 1);
+      }
+      
+      for (let i = start; i <= end; i++) {
+        range.push(i);
+      }
+      
+      return range;
+    };
     
     const paginatedProducts = useMemo(() => {
       return productosFiltrados.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage);
@@ -451,10 +534,17 @@ export default function ProductsByCategoryPage() {
                   <div className="absolute right-0 top-full mt-2 w-full min-w-[200px] rounded-xl shadow-xl border-2 border-slate-700 z-50 max-h-[350px] overflow-y-auto" style={{ background: "linear-gradient(135deg, #e4ede9ff 0%, #e4ede9ff 100%)" }}>
                     <button
                       type="button"
-                      onClick={() => {
-                        setFilterNegocio("");
-                        setShowNegocioDropdown(false);
-                      }}
+                        onClick={() => {
+                          setFilterNegocio("");
+                          setShowNegocioDropdown(false);
+                          const params = new URLSearchParams();
+                          if (filterCat) params.set("cat", filterCat);
+                          if (filterSub) params.set("subcat", filterSub);
+                          if (filterSubsub) params.set("subsubcat", filterSubsub);
+                          params.set("page", "1");
+                          const qs = params.toString();
+                          router.push(`/products-by-category${qs ? `?${qs}` : ""}`, { scroll: false });
+                        }}
                       className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-700 hover:text-white transition-all border-b border-slate-700"
                     >
                       🏪 Todos los negocios
@@ -463,10 +553,17 @@ export default function ProductsByCategoryPage() {
                       <button
                         key={emp.id}
                         type="button"
-                        onClick={() => {
-                          setFilterNegocio(emp.uid);
-                          setShowNegocioDropdown(false);
-                        }}
+                          onClick={() => {
+                            setFilterNegocio(emp.uid);
+                            setShowNegocioDropdown(false);
+                            const params = new URLSearchParams();
+                            if (filterCat) params.set("cat", filterCat);
+                            if (filterSub) params.set("subcat", filterSub);
+                            if (filterSubsub) params.set("subsubcat", filterSubsub);
+                            params.set("emprendedor", emp.uid);
+                            params.set("page", "1");
+                            router.push(`/products-by-category?${params.toString()}`, { scroll: false });
+                          }}
                         className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-700 hover:text-white transition-all border-b border-slate-700 last:border-b-0"
                       >
                         {emp.displayName || "Negocio"}
@@ -519,26 +616,40 @@ export default function ProductsByCategoryPage() {
               <div className="flex flex-wrap justify-center items-center gap-2 mt-8 select-none w-full">
                 <button
                   className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-slate-300 text-slate-900 hover:border-black/60 transition-all disabled:opacity-40"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  onClick={() => updatePage(1)}
+                  disabled={currentPage === 1}
+                >
+                  &lt;&lt;
+                </button>
+                <button
+                  className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-slate-300 text-slate-900 hover:border-black/60 transition-all disabled:opacity-40"
+                  onClick={() => updatePage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
                 >
                   &lt;
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                {getPageRange().map((n) => (
                   <button
                     key={n}
                     className={`px-3 py-1.5 rounded border text-xs font-medium transition-all ${currentPage === n ? 'bg-black border-black text-white shadow-sm' : 'bg-white border-slate-300 text-slate-900 hover:border-black/60'}`}
-                    onClick={() => setCurrentPage(n)}
+                    onClick={() => updatePage(n)}
                   >
                     {n}
                   </button>
                 ))}
                 <button
                   className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-slate-300 text-slate-900 hover:border-black/60 transition-all disabled:opacity-40"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => updatePage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
                 >
                   &gt;
+                </button>
+                <button
+                  className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-slate-300 text-slate-900 hover:border-black/60 transition-all disabled:opacity-40"
+                  onClick={() => updatePage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  &gt;&gt;
                 </button>
               </div>
             )}

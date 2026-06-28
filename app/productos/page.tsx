@@ -47,27 +47,26 @@ const router = useRouter();
     setFilterSubsub(subsubcategoriaFromUrl);
   }, [categoriaFromUrl, subcategoriaFromUrl, subsubcategoriaFromUrl]);
 
-  useEffect(() => {
-    if (emprendedorFromUrl) {
-      setFilterNegocio(emprendedorFromUrl);
-    }
-  }, [emprendedorFromUrl]);
 
   const categoria = filterCat;
   const subcategoria = filterSub;
   const subsubcategoria = filterSubsub;
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const pageFromUrl = Number(searchParams?.get("page")) || 1;
+  const [currentPage, setCurrentPage] = useState(pageFromUrl);
+
+
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const searchFromUrl = (searchParams?.get("search") || "").trim();
+const [search, setSearch] = useState(searchFromUrl);
   const [precioMin, setPrecioMin] = useState("");
   const [precioMax, setPrecioMax] = useState("");
   const [orden, setOrden] = useState("price-high");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [emprendedores, setEmprendedores] = useState<any[]>([]);
-  const [filterNegocio, setFilterNegocio] = useState("");
+const [filterNegocio, setFilterNegocio] = useState(emprendedorFromUrl);
   const [showNegocioDropdown, setShowNegocioDropdown] = useState(false);
   const categoriesScrollRef = useRef<HTMLDivElement>(null);
 
@@ -109,15 +108,23 @@ const router = useRouter();
       setFilterCat(catId);
       setFilterSub("");
       setFilterSubsub("");
+      const params = new URLSearchParams();
+      params.set("cat", catId);
+      if (filterNegocio) params.set("emprendedor", filterNegocio);
+      params.set("page", "1");
+      router.push(`/productos?${params.toString()}`, { scroll: false });
     },
-    []
+    [router, filterNegocio]
   );
 
-  const selectTodas = useCallback(() => {
-    setFilterCat("");
-    setFilterSub("");
-    setFilterSubsub("");
-  }, []);
+const selectTodas = useCallback(() => {
+  setFilterCat("");
+  setFilterSub("");
+  setFilterSubsub("");
+  const params = new URLSearchParams();
+  if (filterNegocio) params.set("emprendedor", filterNegocio);
+    router.push(`/productos${params.toString() ? `?${params.toString()}` : ""}`, { scroll: false });
+}, [router, filterNegocio]);
 
   useEffect(() => {
     async function fetchProductos() {
@@ -175,6 +182,7 @@ const router = useRouter();
     const loggedIn = Boolean(localStorage.getItem("token"));
     setIsAuthenticated(loggedIn);
   }, []);
+
 
   const productosFiltrados = useMemo(() => {
     const filtered = productos
@@ -295,9 +303,124 @@ const router = useRouter();
     currentPage * productsPerPage
   );
 
+  // Resetear a página 1 cuando cambian los filtros (solo después de la carga inicial)
+  const isFirstLoad = useRef(true);
+
+  const prevFiltersRef = useRef({
+    categoria,
+    subcategoria,
+    subsubcategoria,
+    precioMin,
+    precioMax,
+    filterNegocio,
+    // search NO aquí
+  });
+
   useEffect(() => {
-    setCurrentPage(1);
-  }, [productosFiltrados.length, categoria, subcategoria, subsubcategoria, search, precioMin, precioMax, filterNegocio]);
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      setCurrentPage(pageFromUrl);
+      return;
+    }
+
+    const prev = prevFiltersRef.current;
+    const filtersChanged =
+      prev.categoria !== categoria ||
+      prev.subcategoria !== subcategoria ||
+      prev.subsubcategoria !== subsubcategoria ||
+      prev.precioMin !== precioMin ||
+      prev.precioMax !== precioMax ||
+      prev.filterNegocio !== filterNegocio;
+
+    prevFiltersRef.current = {
+      categoria,
+      subcategoria,
+      subsubcategoria,
+      precioMin,
+      precioMax,
+      filterNegocio,
+    };
+
+    if (filtersChanged) {
+      setCurrentPage(1);
+      updatePage(1);
+    }
+  }, [categoria, subcategoria, subsubcategoria, precioMin, precioMax, filterNegocio]);
+  // search NO en dependencias aquí
+
+
+
+    // Actualizar URL cuando cambia la página
+const updatePage = useCallback((page: number) => {
+  setCurrentPage(page);
+  const params = new URLSearchParams();
+  if (filterCat) params.set("cat", filterCat);
+  if (filterSub) params.set("subcat", filterSub);
+  if (filterSubsub) params.set("subsubcat", filterSubsub);
+  if (filterNegocio) params.set("emprendedor", filterNegocio);
+  if (search) params.set("search", search);
+  params.set("page", page.toString());
+  router.push(`/productos?${params.toString()}`, { scroll: false });
+}, [filterCat, filterSub, filterSubsub, filterNegocio, search, router]);
+
+  const isSearchMounted = useRef(false);
+  const prevSearchRef = useRef(search);
+  const isRestoringPage = useRef(true);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      isRestoringPage.current = false;
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (!isSearchMounted.current) {
+      isSearchMounted.current = true;
+      prevSearchRef.current = search;
+      return;
+    }
+
+    if (prevSearchRef.current === search) return;
+    prevSearchRef.current = search;
+
+    if (isRestoringPage.current) return;
+
+    const timeout = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (filterCat) params.set("cat", filterCat);
+      if (filterSub) params.set("subcat", filterSub);
+      if (filterSubsub) params.set("subsubcat", filterSubsub);
+      if (filterNegocio) params.set("emprendedor", filterNegocio);
+      if (search) params.set("search", search);
+      params.set("page", "1"); // ← siempre page=1 al buscar
+      router.replace(`/productos?${params.toString()}`, { scroll: false });
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  // ✅ filterCat, filterNegocio etc en dependencias para tener valores frescos
+  }, [search, filterCat, filterSub, filterSubsub, filterNegocio, router]);
+
+
+  // Calcular rango de páginas a mostrar en paginación simplificada
+  const getPageRange = () => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const maxVisible = isMobile ? 4 : 3;
+    const range = [];
+    
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+    
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    
+    for (let i = start; i <= end; i++) {
+      range.push(i);
+    }
+    
+    return range;
+  };
 
   const hasFilters = !!(search || precioMin || precioMax || orden !== "newest");
 
@@ -365,6 +488,12 @@ const router = useRouter();
                       onClick={() => {
                         setFilterNegocio("");
                         setShowNegocioDropdown(false);
+                        const params = new URLSearchParams();
+                        if (filterCat) params.set("cat", filterCat);
+                        if (filterSub) params.set("subcat", filterSub);
+                        if (filterSubsub) params.set("subsubcat", filterSubsub);
+                        params.set("page", "1");
+                        router.push(`?${params.toString()}`, { scroll: false });
                       }}
                       className="w-full px-4 py-3 text-left text-sm font-semibold text-slate-700 hover:bg-slate-700 hover:text-white transition-all border-b border-slate-700"
                     >
@@ -377,6 +506,13 @@ const router = useRouter();
                         onClick={() => {
                           setFilterNegocio(emp.uid);
                           setShowNegocioDropdown(false);
+                          const params = new URLSearchParams();
+                          if (filterCat) params.set("cat", filterCat);
+                          if (filterSub) params.set("subcat", filterSub);
+                          if (filterSubsub) params.set("subsubcat", filterSubsub);
+                          params.set("emprendedor", emp.uid);
+                          params.set("page", "1");
+                          router.push(`?${params.toString()}`, { scroll: false });
                         }}
                         className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-700 hover:text-white transition-all border-b border-slate-700 last:border-b-0"
                       >
@@ -490,26 +626,40 @@ const router = useRouter();
               <div className="flex flex-wrap justify-center items-center gap-2 mt-8 select-none w-full">
                 <button
                   className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-blue-300 text-slate-900 hover:border-blue-500 transition-all disabled:opacity-40"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  onClick={() => updatePage(1)}
+                  disabled={currentPage === 1}
+                >
+                  &lt;&lt;
+                </button>
+                <button
+                  className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-blue-300 text-slate-900 hover:border-blue-500 transition-all disabled:opacity-40"
+                  onClick={() => updatePage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
                 >
                   &lt;
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                {getPageRange().map((n) => (
                   <button
                     key={n}
                     className={`px-3 py-1.5 rounded border text-xs font-medium transition-all ${currentPage === n ? "bg-blue-500 border-blue-500 text-white shadow-sm" : "bg-white border-blue-300 text-slate-900 hover:border-blue-500"}`}
-                    onClick={() => setCurrentPage(n)}
+                    onClick={() => updatePage(n)}
                   >
                     {n}
                   </button>
                 ))}
                 <button
                   className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-blue-300 text-slate-900 hover:border-blue-500 transition-all disabled:opacity-40"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => updatePage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
                 >
                   &gt;
+                </button>
+                <button
+                  className="px-3 py-1.5 rounded border text-xs font-medium bg-white border-blue-300 text-slate-900 hover:border-blue-500 transition-all disabled:opacity-40"
+                  onClick={() => updatePage(totalPages)}
+                  disabled={currentPage === totalPages}
+                >
+                  &gt;&gt;
                 </button>
               </div>
             )}
