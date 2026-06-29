@@ -273,9 +273,7 @@ export const Navbar = () => {
               href="/"
               className="flex items-center gap-2 shrink-0 text-black"
             >
-              <span className="font-heading tracking-tight whitespace-nowrap text-lg sm:text-2xl font-black">
-                TodoMarket
-              </span>
+              <img src="/logoTM.png" alt="Logo TM" className="h-10 sm:h-16 w-auto" />
             </a>
 
             {/* Buscador */}
