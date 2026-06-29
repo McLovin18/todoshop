@@ -614,8 +614,6 @@ const updatePage = useCallback((page: number) => {
                     showCart
                     showEye
                     showFav={isAuthenticated}
-                    onClick={() => {}}
-                    onEye={() => {}}
                     isCompact={false}
                     emprendedorDisplayName={emprendedor?.displayName}
                   />

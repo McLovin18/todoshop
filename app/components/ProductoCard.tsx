@@ -458,7 +458,7 @@ function ProductoCard({
           animationDelay: `${index * 80}ms`,
         }}
       >
-        <div className="pc-card" onClick={onClick || goToDetail}>
+        <div className="pc-card" onClick={onClick || undefined}>
           {/* ── IMAGEN ── */}
           <div className="pc-img-wrap">
             <Image
@@ -549,7 +549,11 @@ function ProductoCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      onEye ? onEye(producto) : goToDetail(e);
+                      if (onEye) {
+                        onEye(producto);
+                      } else {
+                        router.push(detailUrl); // directo, sin pasar el evento
+                      }
                     }}
                     className="pc-btn-eye"
                     title="Ver detalle"
