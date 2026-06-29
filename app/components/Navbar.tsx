@@ -156,7 +156,7 @@ export const Navbar = () => {
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const router = useRouter();
-  const searchInputRef = useRef<HTMLInputElement>(null);
+const searchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -192,7 +192,7 @@ export const Navbar = () => {
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setShowSearchDropdown(false);
       }
     }
@@ -238,6 +238,19 @@ export const Navbar = () => {
     setSearchQuery("");
   };
 
+
+
+
+  const handleProductClickMobile = (productId: string) => {
+    const isAdmin = user?.role === "admin";
+    const detailUrl = isAdmin ? `/admin/product-detail?id=${productId}` : `/product-detail?id=${productId}`;
+    setShowSearchDropdown(false);
+    setSearchQuery("");
+    setMobileOpen(false);
+    window.location.href = detailUrl; // ← navegación dura, no le afecta nada
+  };
+
+
   const getDetailUrl = (productId: string) => {
     const isAdmin = user?.role === "admin";
     return isAdmin ? `/admin/product-detail?id=${productId}` : `/product-detail?id=${productId}`;
@@ -278,9 +291,8 @@ export const Navbar = () => {
 
             {/* Buscador */}
             <div className="hidden md:flex items-center">
-              <div className="relative">
+              <div className="relative" ref={searchContainerRef}>
                 <input
-                  ref={searchInputRef}
                   type="text"
                   placeholder="Buscar productos..."
                   value={searchQuery}
@@ -334,7 +346,7 @@ export const Navbar = () => {
               href="/productos"
               className="px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 whitespace-nowrap bg-gradient-to-r from-slate-400 to-slate-500 hover:from-slate-700 hover:to-slate-800 shadow-md"
             >
-              🍽️ Productos
+              Productos
             </Link>
 
 
@@ -342,7 +354,7 @@ export const Navbar = () => {
               href="/reservas"
               className="px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:scale-105 whitespace-nowrap bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-800 hover:to-slate-900 shadow-md"
             >
-              🍽️ Reservas
+              Reservas
             </Link>
             
             {/* Mostrar categorías visibles (máximo 8) */}
@@ -446,15 +458,13 @@ export const Navbar = () => {
       {mobileOpen && (
         <div
           className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm mb-12"
-          onClick={() => setMobileOpen(false)}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setMobileOpen(false);
+          }}
         >
           <div
             className="absolute left-0 top-0 w-[85vw] max-w-xs max-h-[calc(100vh-80px)] overflow-y-auto shadow-lg flex flex-col"
-            style={{
-              background: "#FFFFFF",
-              color: "#000000"
-            }}
-            onClick={(e) => e.stopPropagation()}
+            style={{ background: "#FFFFFF", color: "#000000" }}
           >
             {/* Header drawer */}
             <div
@@ -462,7 +472,7 @@ export const Navbar = () => {
               style={{ borderColor: "#E0E0E0" }}
             >
               <span className="font-bold text-base" style={{ color: "#000000" }}>
-                todoShop
+                TodoMarket
               </span>
               <button
                 onClick={() => setMobileOpen(false)}
@@ -491,51 +501,63 @@ export const Navbar = () => {
                     className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-200 focus:border-emerald-500 focus:outline-none text-sm"
                   />
                   <button
-                    onClick={() => {
-                      handleSearchSubmit();
-                      setMobileOpen(false);
-                    }}
+                    onClick={() => { handleSearchSubmit(); setMobileOpen(false); }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors"
                   >
                     <span className="material-icons-round text-lg">search</span>
                   </button>
+                </div>
 
-                  {/* Dropdown de resultados de búsqueda móvil */}
-                  {showSearchDropdown && searchResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border-2 border-slate-200 shadow-xl max-h-96 overflow-y-auto z-50">
-                      {searchResults.map((product) => (
-                        <div
+                {/* Resultados inline — sin position absolute */}
+                {showSearchDropdown && searchResults.length > 0 && (
+                  <div className="mt-2 bg-white rounded-xl border-2 border-slate-200 shadow-md" style={{ overflow: "visible" }}>
+                    {searchResults.map((product) => {
+                      const detailUrl = (user?.role === "admin")
+                        ? `/admin/product-detail?id=${product.id}`
+                        : `/product-detail?id=${product.id}`;
+                      return (
+                        <a
                           key={product.id}
-                          onClick={() => {
-                            handleProductClick(product.id);
-                            setMobileOpen(false);
+                          href={detailUrl}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            padding: "12px",
+                            textDecoration: "none",
+                            borderBottom: "1px solid #f1f5f9",
+                            touchAction: "manipulation",
+                            WebkitTapHighlightColor: "transparent",
+                            cursor: "pointer",
                           }}
-                          className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
                         >
-                          {product.imagenes && product.imagenes.length > 0 && (
+                          {product.imagenes?.[0] && (
                             <img
-                              src={typeof product.imagenes[0] === 'string' ? product.imagenes[0] : URL.createObjectURL(product.imagenes[0])}
+                              src={typeof product.imagenes[0] === 'string'
+                                ? product.imagenes[0]
+                                : URL.createObjectURL(product.imagenes[0])}
                               alt={product.nombre}
-                              className="w-12 h-12 object-cover rounded-lg"
+                              style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 8, flexShrink: 0 }}
                             />
                           )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm text-black truncate">{product.nombre}</p>
-                            <p className="text-xs text-slate-500 truncate">{product.marca || ''}</p>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontWeight: 600, fontSize: 14, color: "#000", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.nombre}</p>
+                            <p style={{ fontSize: 12, color: "#6b7280", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.marca || ''}</p>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+
               </div>
+
 
               {/* Links principales */}
               <a
                 href="/reservas"
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors bg-emerald-50 text-emerald-700"
               >
-                <span className="material-icons-round text-lg">restaurant</span>
                 Reservas
               </a>
               
@@ -563,7 +585,6 @@ export const Navbar = () => {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
                 style={{ color: "#000000" }}
               >
-                <span className="material-icons-round text-lg">category</span>
                 Ver todas las categorías
               </a>
 
