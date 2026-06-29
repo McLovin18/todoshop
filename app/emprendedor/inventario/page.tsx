@@ -269,6 +269,7 @@ export default function AdminInventario() {
                         <th className="text-left font-semibold px-4 py-4 w-[24%]">Fecha actualización</th>
                         <th className="text-center font-semibold px-4 py-4 w-[10%]">Destacado</th>
                         <th className="text-right font-semibold px-4 py-4 w-[9%]">Precio</th>
+                        <th className="text-right font-semibold px-4 py-4 w-[11%]">Con descuento</th>
                         <th className="text-right font-semibold px-6 py-4 w-[9%]">Existencias</th>
                       </tr>
                     </thead>
@@ -328,6 +329,20 @@ export default function AdminInventario() {
                               </label>
                             </td>
                             <td className="px-4 py-3 text-right font-bold text-amber-600 whitespace-nowrap">${Number(p.precio || 0).toFixed(2)}</td>
+                            <td className="px-4 py-3 text-right whitespace-nowrap">
+                              {p.descuento && Number(p.descuento) > 0 ? (
+                                <div className="flex flex-col items-end gap-0.5">
+                                  <span className="font-bold text-emerald-600">
+                                    ${(Number(p.precio || 0) * (1 - Number(p.descuento) / 100)).toFixed(2)}
+                                  </span>
+                                  <span className="text-xs font-semibold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full leading-none">
+                                    -{p.descuento}%
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-300 text-sm">—</span>
+                              )}
+                            </td>
                             <td className="px-6 py-3 text-right font-bold whitespace-nowrap">{stockTotal}</td>
                           </tr>
                         );
