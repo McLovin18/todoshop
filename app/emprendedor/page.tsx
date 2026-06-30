@@ -27,7 +27,8 @@ export default function EmprendedorHomePage() {
           if (!querySnapshot.empty) {
             const docSnap = querySnapshot.docs[0];
             const data = docSnap.data();
-            setTelefono(data.telefono || "");
+            // Priorizar whatsapp, sino usar telefono
+            setTelefono(data.whatsapp || data.telefono || "");
             setEmprendedorId(docSnap.id);
           }
         } catch (error) {
@@ -48,8 +49,12 @@ export default function EmprendedorHomePage() {
     setSaving(true);
     try {
       const emprendedorRef = doc(db, "emprendedores", emprendedorId);
-      await updateDoc(emprendedorRef, { telefono });
-      alert("Teléfono guardado correctamente");
+      // Actualizar ambos campos para mantener consistencia
+      await updateDoc(emprendedorRef, { 
+        whatsapp: telefono,
+        telefono: telefono 
+      });
+      alert("Número de WhatsApp actualizado correctamente");
     } catch (error) {
       console.error("Error al guardar teléfono:", error);
       alert("Error al guardar teléfono");
@@ -67,12 +72,12 @@ export default function EmprendedorHomePage() {
           
           {/* Campo de teléfono */}
           <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-900 mb-3">Información de contacto</h3>
-            <p className="text-sm text-slate-600 mb-4">Tu número de teléfono se usará para contactarte cuando los estudiantes realicen compras o reservas.</p>
+            <h3 className="text-lg font-semibold text-slate-900 mb-3">Número de WhatsApp</h3>
+            <p className="text-sm text-slate-600 mb-4">Tu número de WhatsApp se usará para que los clientes te contacten cuando realicen compras. Si escribiste mal tu número en el registro, puedes corregirlo aquí.</p>
             <div className="flex gap-3">
               <input
                 type="tel"
-                placeholder="Tu número de teléfono"
+                placeholder="+593 99 123 4567"
                 value={telefono}
                 onChange={(e) => setTelefono(e.target.value)}
                 className="flex-1 px-4 py-2.5 rounded-lg border-2 border-slate-300 focus:border-emerald-500 focus:outline-none text-sm"
@@ -82,7 +87,7 @@ export default function EmprendedorHomePage() {
                 disabled={saving || !telefono.trim()}
                 className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
               >
-                {saving ? "Guardando..." : "Guardar"}
+                {saving ? "Guardando..." : "Actualizar"}
               </button>
             </div>
           </div>

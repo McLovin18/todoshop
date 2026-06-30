@@ -244,14 +244,20 @@ export default function CartPage() {
         const emprendedorSnapshot = await getDocs(emprendedorQuery);
         if (!emprendedorSnapshot.empty) {
           const emprendedorData = emprendedorSnapshot.docs[0].data();
-          emprendedorTelefono = emprendedorData.telefono;
+          emprendedorTelefono = emprendedorData.whatsapp || emprendedorData.telefono;
         }
       } catch (error) {
         console.error("Error al obtener teléfono del emprendedor:", error);
       }
     }
 
-    const whatsappNumber = emprendedorTelefono || process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "593996326003";
+    if (!emprendedorTelefono) {
+      whatsappWindow?.close();
+      setError("No se encontró número de WhatsApp del emprendedor. Por favor contacta al soporte.");
+      return;
+    }
+
+    const whatsappNumber = emprendedorTelefono;
     const message = await generateWhatsAppMessage(emprendedorId);
     const url = `https://wa.me/${whatsappNumber}?text=${message}`;
 

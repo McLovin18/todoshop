@@ -23,9 +23,12 @@ export default function AdminPage() {
           <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
             Este es el panel de administración. Los clientes compran a través del catálogo y envían sus órdenes por WhatsApp.
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/admin/emprendedores" className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition">
               Gestionar emprendedores
+            </Link>
+            <Link href="/admin/solicitudes-emprendedores" className="inline-flex items-center justify-center rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 transition">
+              Solicitudes pendientes
             </Link>
           </div>
         </div>

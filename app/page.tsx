@@ -311,7 +311,43 @@ const router = useRouter();
 
   return (
     <div className="min-h-screen flex flex-col text-slate-900 dark:text-white transition-colors" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)" }}>
-      <main className="max-w-7xl mx-auto w-full px-3 sm:px-5 py-6 sm:py-15 flex-1">
+      <main className="max-w-7xl mx-auto w-full px-3 sm:px-5 py-3 sm:py-8 flex-1">
+
+        {/* Mensaje explicativo de la plataforma */}
+        <div className="mb-6 overflow-hidden rounded-full border border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 py-2">
+          <div className="flex whitespace-nowrap animate-marquee">
+            {[0, 1].map((i) => (
+              <div key={i} className="flex items-center gap-2 px-4 shrink-0">
+                <span className="material-icons-round text-base text-blue-600 dark:text-blue-400">
+                  storefront
+                </span>
+                <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                  <strong className="text-blue-600 dark:text-blue-400">TodoMarket</strong>{" "}
+                  — el marketplace hecho por y para estudiantes. Compra, vende y reserva comida sin salir del campus, impulsando el emprendimiento estudiantil.
+                </span>
+                <span className="mx-3 text-blue-300 dark:text-blue-700">•</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes marquee {
+            0% {
+              transform: translateX(0);
+            }
+            100% {
+              transform: translateX(-50%);
+            }
+          }
+          .animate-marquee {
+            width: max-content;
+            animation: marquee 15s linear infinite;
+          }
+          .animate-marquee:hover {
+            animation-play-state: paused;
+          }
+        `}</style>
 
         {/* Botones principales */}
         <div className="grid grid-cols-2 gap-4 mb-8">

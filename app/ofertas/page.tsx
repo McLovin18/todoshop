@@ -65,19 +65,19 @@ export default function OfertasPage() {
   }, [productos, selectedCategoryId]);
 
   return (
-    <div className="min-h-screen bg-black bg-linear-to-b dark:from-black dark:via-slate-950 dark:to-black text-slate-900 dark:text-white">
-      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex flex-col text-slate-900 dark:text-white transition-colors" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)" }}>
+      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8 flex-1">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-rose-500">Oferta especial</p>
-            <h1 className="mt-2 text-3xl font-black text-white tracking-tight sm:text-4xl">Productos con descuento</h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+            <h1 className="mt-2 text-3xl font-black text-slate-900 dark:text-white tracking-tight sm:text-4xl">Productos con descuento</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">
               Aquí solo aparecen los productos que tienen descuento real aplicado al precio de compra.
             </p>
           </div>
           <Link
             href="/products-by-category"
-            className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+            className="inline-flex w-fit items-center gap-2 rounded-full bg-white border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-900 transition hover:border-black/60 hover:shadow-md dark:bg-white/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10"
           >
             Ver catálogo
             <span className="material-icons-round text-base">arrow_forward</span>
@@ -122,8 +122,8 @@ export default function OfertasPage() {
           </div>
         ) : productosOferta.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white/80 p-10 text-center shadow-sm dark:border-white/15 dark:bg-white/3">
-            <h2 className="text-xl font-semibold">No hay ofertas activas</h2>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">No hay ofertas activas</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
               En este momento no hay productos con descuento publicado.
             </p>
           </div>
