@@ -132,15 +132,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await db.collection("emprendedores").add(emprendedorData);
 
-    // Actualizar solicitud a aprobada
-    await db.collection("solicitudes-emprendedores").doc(solicitudId).update({
-      status: "approved",
-      approvedAt: Date.now(),
-      approvedBy: {
-        uid: verifyResult.uid,
-        email: verifyResult.email || null,
-      },
-    });
+    // Eliminar solicitud después de aprobar
+    await db.collection("solicitudes-emprendedores").doc(solicitudId).delete();
 
     return NextResponse.json({
       success: true,
