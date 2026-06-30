@@ -321,7 +321,7 @@ const router = useRouter();
                 <span className="material-icons-round text-base text-blue-600 dark:text-blue-400">
                   storefront
                 </span>
-                <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                <span className="text-xs sm:text-sm text-slate-700 dark:text-black">
                   <strong className="text-blue-600 dark:text-blue-400">TodoMarket</strong>{" "}
                   — el marketplace hecho por y para estudiantes. Compra, vende y reserva comida sin salir del campus, impulsando el emprendimiento estudiantil.
                 </span>
