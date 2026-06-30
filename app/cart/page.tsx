@@ -221,14 +221,20 @@ export default function CartPage() {
     return encodeURIComponent(message);
   };
 
+  
+
   const handleGenerarOrden = async (emprendedorId: string) => {
-    // Obtener el número de teléfono del emprendedor específico
+    // 1. Abrir la ventana INMEDIATO, en el mismo tick del click (esto es lo que arregla iOS)
+    const whatsappWindow = window.open("", "_blank");
+
     const group = groupedByEmprendedor[emprendedorId];
-    if (!group) return;
+    if (!group) {
+      whatsappWindow?.close();
+      return;
+    }
 
     let emprendedorTelefono = group?.productos?.[0]?.emprendedorTelefono || group?.productos?.[0]?.telefono;
-    
-    // Si no hay teléfono en el producto, buscar en la colección de emprendedores
+
     if (!emprendedorTelefono && group?.emprendedorId) {
       try {
         const emprendedorQuery = query(
@@ -244,11 +250,17 @@ export default function CartPage() {
         console.error("Error al obtener teléfono del emprendedor:", error);
       }
     }
-    
-    // Si no hay teléfono del emprendedor, usar el número por defecto
+
     const whatsappNumber = emprendedorTelefono || process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "593996326003";
     const message = await generateWhatsAppMessage(emprendedorId);
-    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
+    const url = `https://wa.me/${whatsappNumber}?text=${message}`;
+
+    // 2. Recién aquí, ya con el mensaje listo, navegamos la ventana que abrimos antes
+    if (whatsappWindow) {
+      whatsappWindow.location.href = url;
+    } else {
+      window.location.href = url; // fallback por si el navegador bloqueó igual
+    }
   };
 
   const handleCantidad = (id: string, cantidad: number) => {
