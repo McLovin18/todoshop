@@ -7,6 +7,7 @@ import { useUser } from "../context/UserContext";
 import { useRouter } from "next/navigation";
 import { useToast } from "../context/ToastContext";
 import { getCatalogPricing } from "../lib/pricing";
+import { trackAddToCart, trackViewItem } from "../lib/analytics";
 
 const cardStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Barlow:wght@400;500;600;700&display=swap');
@@ -442,6 +443,7 @@ function ProductoCard({
         precioUnitario: finalPrice,
         descuento: hasDiscount ? discount : 0,
       });
+      trackAddToCart(producto, 1);
       showToast(`${producto.nombre} añadido al carrito`, "success");
     }
   };

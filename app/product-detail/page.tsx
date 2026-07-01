@@ -14,6 +14,7 @@ import BottomBarPublic from "../components/BottomBarPublic";
 import dynamic from "next/dynamic";
 import { getCartItemKey } from "../context/userLocalStorage";
 import { getCatalogPricing } from "../lib/pricing";
+import { trackViewItem, trackAddToCart } from "../lib/analytics";
 
 
 export default function ProductDetailPage({ params }) {
@@ -103,6 +104,7 @@ export default function ProductDetailPage({ params }) {
       setLoading(false);
       fetchReviews(id);
       if (prod) {
+        trackViewItem(prod);
         let rel = [];
         console.log("[RELACIONADOS] subsubcategoria:", prod.subsubcategoria, "subcategoria:", prod.subcategoria, "categoria:", prod.categoria);
         if (prod.subsubcategoria) {
@@ -285,6 +287,7 @@ export default function ProductDetailPage({ params }) {
         cartKey: currentCartKey,
       };
       addCarrito(cartItem);
+      trackAddToCart(producto, cantidad);
       showToast(`${producto.nombre} añadido al carrito`, "success");
     }
   };

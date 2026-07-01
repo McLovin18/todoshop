@@ -6,6 +6,7 @@ import { obtenerCategoriasAlimentos } from "../lib/categorias-db";
 import type { Alimento } from "../lib/alimentos-db";
 import { db } from "../lib/firebase";
 import { doc, getDoc, query, where, getDocs, collection } from "firebase/firestore";
+import { trackReserveFood } from "../lib/analytics";
 
 export default function ReservasPage() {
   const searchParams = useSearchParams();
@@ -109,6 +110,12 @@ export default function ReservasPage() {
       mensaje += ` ${selectedExtras.map(e => e.nombre).join("+ ")} (+$${selectedExtras.reduce((sum, e) => sum + Number(e.precio), 0)})`;
     }
     mensaje += `. Precio total: $${selectedAlimento.precio}${selectedExtras && selectedExtras.length > 0 ? ` + $${selectedExtras.reduce((sum, e) => sum + Number(e.precio), 0)}` : ""}`;
+    
+    const totalPrecio = Number(selectedAlimento.precio) + (selectedExtras ? selectedExtras.reduce((sum, e) => sum + Number(e.precio), 0) : 0);
+    const cantidad = 1; // Por defecto 1 alimento por reserva
+    
+    // Track reserve event
+    trackReserveFood(selectedAlimento.id, selectedAlimento.nombre, cantidad, totalPrecio);
     
     const whatsappUrl = `https://wa.me/${whatsappEmprendedor}?text=${encodeURIComponent(mensaje)}`;
     // Detectar si es móvil

@@ -8,6 +8,7 @@ import { useUser } from "../context/UserContext";
 import { obtenerAtributos } from "../lib/atributos-db";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { trackPurchaseWhatsApp } from "../lib/analytics";
 
 function resolveCartItemKey(item: any) {
   if (!item) return "";
@@ -260,6 +261,9 @@ export default function CartPage() {
     const whatsappNumber = emprendedorTelefono;
     const message = await generateWhatsAppMessage(emprendedorId);
     const url = `https://wa.me/${whatsappNumber}?text=${message}`;
+
+    // Track purchase event
+    trackPurchaseWhatsApp(group.emprendedorId, group.emprendedorNombre, group.subtotal, group.productos.length);
 
     // 2. Recién aquí, ya con el mensaje listo, navegamos la ventana que abrimos antes
     if (whatsappWindow) {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { trackEntrepreneurRegister } from "../lib/analytics";
 
 type Categoria = {
   id: string;
@@ -106,6 +107,9 @@ export default function RegistroEmprendedorPage() {
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Error al enviar la solicitud");
       }
+
+      // Track entrepreneur registration event
+      trackEntrepreneurRegister(formData.nombreNegocio, formData.tipoEmprendimiento);
 
       setSuccess("¡Solicitud enviada correctamente! Te notificaremos cuando sea aprobada.");
       setFormData({
