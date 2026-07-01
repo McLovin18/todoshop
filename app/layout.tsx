@@ -7,6 +7,7 @@ import { UserProvider } from "./context/UserContext";
 import { OnboardingProvider } from "./context/OnboardingContext";
 import { ToastProvider } from "./context/ToastContext";
 import LayoutContentClient from "./components/LayoutContentClient";
+import GoogleAnalytics from "./components/GoogleAnalytics";
 import type { Metadata, Viewport } from "next";
 import { Source_Serif_4 } from "next/font/google";
 
@@ -122,21 +123,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={sourceSerif4.variable}>
       <head>
-                {/* Google Analytics gtag.js - insertado justo después de <head> */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-K1Q0MYDSKF"></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-K1Q0MYDSKF');
-            `,
-          }}
-        />
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
       </head>
       <body className="relative">
+        <GoogleAnalytics />
         <ToastProvider>
           <OnboardingProvider>
             <LayoutContentClient>{children}</LayoutContentClient>
