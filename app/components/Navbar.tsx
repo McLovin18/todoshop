@@ -148,6 +148,7 @@ export const Navbar = () => {
   const [userMenu, setUserMenu] = useState(false);
   const [openCatId, setOpenCatId] = useState<string | null>(null);
   const [openSubId, setOpenSubId] = useState<string | null>(null);
+  const [showAllMobileCategories, setShowAllMobileCategories] = useState(false);
   const { user, carrito } = useUser();
   const [windowWidth, setWindowWidth] = useState<number | null>(null);
   const [categorias, setCategorias] = useState<any[]>([]);
@@ -562,11 +563,11 @@ const searchContainerRef = useRef<HTMLDivElement>(null);
               </a>
               
               {/* Categorías visibles en navbar móvil */}
-              {categorias
-                .filter(cat => cat.visibleEnNavbar)
-                .sort((a, b) => (a.orden || 0) - (b.orden || 0))
-                .slice(0, 8)
-                .map(cat => (
+              {(() => {
+                const cats = showAllMobileCategories 
+                  ? categorias.sort((a, b) => (a.orden || 0) - (b.orden || 0))
+                  : categorias.filter(cat => cat.visibleEnNavbar).sort((a, b) => (a.orden || 0) - (b.orden || 0));
+                return cats.slice(0, showAllMobileCategories ? undefined : 8).map(cat => (
                   <a
                     key={cat.id}
                     href={`${basePath}?cat=${cat.id}`}
@@ -578,15 +579,20 @@ const searchContainerRef = useRef<HTMLDivElement>(null);
                     )}
                     {cat.nombre}
                   </a>
-                ))}
+                ));
+              })()}
               
-              <a
-                href="/products-by-category"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
-                style={{ color: "#000000" }}
-              >
-                Ver todas las categorías
-              </a>
+              {/* Botón "Ver más" solo en móvil - mostrar cuando no están todas */}
+              {!showAllMobileCategories && (
+                <button
+                  onClick={() => setShowAllMobileCategories(true)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-black/5 text-emerald-600 font-semibold"
+                  style={{ color: "#059669" }}
+                >
+                  <span className="material-icons-round">expand_more</span>
+                  Ver todas las categorías
+                </button>
+              )}
 
               {/* Links antiguos (vacío) */}
               {links.map((link) => (
